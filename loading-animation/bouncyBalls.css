@@ -1,0 +1,17 @@
+#loadingAnimation {
+    position: relative;
+    width: 800px;
+    height: 450px;
+    box-shadow: 5px 5px 5px lightgrey inset;
+    border: 2px darkgrey solid;
+}
+.ball {
+    left: 420px;
+    top: 69px;
+    background-color: rgb(0, 0, 0);
+    position: absolute;
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    display: block;
+}
