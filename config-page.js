@@ -10,7 +10,6 @@ import {LitElement, html, css} from 'lit';
  * The HyE - YouTube configuration page
  */
 
- // TODO POSTS don't return JSON, but plain text! Adjust response handlers accordingly
 export class ConfigPage extends LitElement {
     static get styles() {
         return css`
@@ -67,7 +66,7 @@ export class ConfigPage extends LitElement {
         super();
         this.proxyBaseUri = "http://localhost:8080/hye-youtube/";
         this.sharedCookies = false;
-        this.consents = [];
+        this.consents = {};
         this.permissions = [];
         this.fetchCookies();
         this.fetchConsent();
@@ -77,9 +76,10 @@ export class ConfigPage extends LitElement {
     fetchCookies() {
         fetch(this.proxyBaseUri + "cookies/", {credentials: "include"}).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.cookieStatus);
+                this.requestFailed(response.statusText, this.cookieStatus);
+            } else {
+                return response.json();
             }
-            return response.json();
             }).then(data => {
                 if (typeof data["200"] !== "undefined") {
                     this.sharedCookies = true;
@@ -104,33 +104,34 @@ export class ConfigPage extends LitElement {
     fetchConsent() {
         fetch(this.proxyBaseUri + "consent/", {credentials: "include"}).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.consentStatus);
+                this.requestFailed(response.statusText, this.consentStatus);
+            } else {
+                return response.json();
             }
-            return response.json();
             }).then(data => {
                 if (typeof data["200"] !== "undefined") {
                     this.consents = data["200"];
                 }
-                else if (Array.isArray(data)) {
+                else if (Array.isArray(data) || typeof data === "string") {
                     if (data.length === 0) {
                         this.consentStatus.innerHTML = "Currently you have not granted anybody access to your cookies.";
                     } else {
-                        this.consents = data;
+                        this.consents = this.parseConsentData(data);
                     }
                 }
                 else {
                     this.requestFailed(data, this.consentStatus);
                 }
             }).catch((error) => {
-                this.consentStatus.innerHTML = "Error while retrieving consent information!";
                 console.error('Error:', error);
+                this.consentStatus.innerHTML = "Error while retrieving consent information!";
             });
     }
 
     fetchPermissions() {
         fetch(this.proxyBaseUri + "reader/", {credentials: "include"}).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.permissionStatus);
+                this.requestFailed(response.statusText, this.permissionStatus);
             } else {
                 return response.json();
             }
@@ -150,8 +151,8 @@ export class ConfigPage extends LitElement {
                 }
             })
             .catch((error) => {
-                this.permissionStatus.innerHTML = "Error while retrieving permissions!";
                 console.error('Error:', error);
+                this.permissionStatus.innerHTML = "Error while retrieving permissions!";
             });
     }
 
@@ -165,10 +166,10 @@ export class ConfigPage extends LitElement {
             body: this.cookieBox.value
         }).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.cookieStatus);
+                this.requestFailed(response.statusText, this.cookieStatus);
             } else {
                 this.cookieStatus.innerHTML = "Successfully uploaded cookies.";
-                this.requestUpdate();
+                window.location.reload(true);
             }
             }).catch((error) => {
                 this.cookieStatus.innerHTML = "Uploading cookies failed!";
@@ -185,10 +186,10 @@ export class ConfigPage extends LitElement {
             credentials: "include"
         }).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
+                this.requestFailed(response.statusText, this.newUserStatus);
             } else {
                 this.newUserStatus.innerHTML = "Successfully delete cookies!";
-                this.requestUpdate();
+                window.location.reload(true);
             }
             }).catch((error) => {
                 this.newUserStatus.innerHTML = "Error deleting cookies!";
@@ -197,6 +198,7 @@ export class ConfigPage extends LitElement {
     }
 
     addUser() {
+        this.newUserStatus.innerHTML = "Adding user <i class='fa fa-spinner fa-pulse'></i>";
         let userId = this.newUserId.value;
         fetch(this.proxyBaseUri + "reader/", {
             method: "POST",
@@ -207,19 +209,18 @@ export class ConfigPage extends LitElement {
             body: `['${userId}']`
         }).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
+                this.requestFailed(response.statusText, this.newUserStatus);
             } else {
                 this.addConsent(this.newUserId.value, true);
             }
-            return response.json();
             }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to add new user!";
                 console.error('Error:', error);
+                this.newUserStatus.innerHTML = "Error while trying to add new user!";
             });
     }
 
     addConsent(userId, anon) {
-        this.newUserId.innerHTML = "Updating consent...";
+        this.newUserStatus.innerHTML = "Updating consent <i class='fa fa-spinner fa-pulse'></i>";
         let successCounter = 0;
         // Just send three POSTs, one for each endpoint URI
         fetch(this.proxyBaseUri + "consent/", {
@@ -228,62 +229,54 @@ export class ConfigPage extends LitElement {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri}', 'anonymous': ${anon}}`
+            body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri}", "anonymous": ${anon}}`
         }).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
+                this.requestFailed(response.statusText, this.newUserStatus);
             } else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
+                fetch(this.proxyBaseUri + "consent/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                    body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri + "watch"}", "anonymous": ${anon}}`
+                }).then(response => {
+                    if (!response.ok) {
+                        this.requestFailed(response.statusText, this.newUserStatus);
+                    } else {
+                        fetch(this.proxyBaseUri + "consent/", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            credentials: "include",
+                            body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri + "results"}", "anonymous": ${anon}}`
+                        }).then(response => {
+                            if (!response.ok) {
+                                this.requestFailed(response.statusText, this.newUserStatus);
+                            } else {
+                                window.location.reload(true);
+                            }
+                            return response.json();
+                        }).catch((error) => {
+                            this.newUserStatus.innerHTML = "Error while trying to add new user!";
+                            console.error('Error:', error);
+                        });
+                    }
+                }).catch((error) => {
+                    this.newUserStatus.innerHTML = "Error while trying to add new user!";
+                    console.error('Error:', error);
+                });
             }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to add new user!";
-                console.error('Error:', error);
-            });
-        fetch(this.proxyBaseUri + "consent/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri + "watch"}', 'anonymous': ${anon}}`
-        }).then(response => {
-            if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
-            } else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
-            }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to add new user!";
-                console.error('Error:', error);
-            });
-        fetch(this.proxyBaseUri + "consent/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri + "results"}', 'anonymous': ${anon}}`
-        }).then(response => {
-            if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
-            } else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
-            }
-            return response.json();
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to add new user!";
-                console.error('Error:', error);
-            });
+        }).catch((error) => {
+            this.newUserStatus.innerHTML = "Error while trying to add new user!";
+            console.error('Error:', error);
+        });
     }
 
     revokeConsent(userId, anon) {
-        this.newUserStatus.innerHTML = "Updating consent...";
+        this.newUserStatus.innerHTML = "Revoking consent <i class='fa fa-spinner fa-pulse'></i>";
         // Just send three POSTs, one for each endpoint URI
         fetch(this.proxyBaseUri + "consent/", {
             method: "DELETE",
@@ -291,93 +284,88 @@ export class ConfigPage extends LitElement {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri}', 'anonymous': ${anon}}`
+            body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri}", "anonymous": ${anon}}`
         }).then(response => {
             if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
+                this.requestFailed(response.statusText, this.newUserStatus);
             }
             else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
-            }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                console.error('Error:', error);
-            });
-        fetch(this.proxyBaseUri + "consent/", {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri + "watch"}', 'anonymous': ${anon}}`
-        }).then(response => {
-            if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
-            } else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
-            }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                console.error('Error:', error);
-            });
-        fetch(this.proxyBaseUri + "consent/", {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: `{'reader': '${userId}', 'requestUri': '${this.proxyBaseUri + "results"}', 'anonymous': ${anon}}`
-        }).then(response => {
-            if (!response.ok) {
-                this.requestFailed(response, this.newUserStatus);
-            } else {
-                if (++successCounter >= 3) {
-                    this.requestUpdate();
-                }
-            }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                console.error('Error:', error);
-            });
-        if (anon) {
-            // Completely remove reader
-            fetch(this.proxyBaseUri + "reader/", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include",
-                body: `['${userId}']`
-            }).then(response => {
-                if (!response.ok) {
-                    this.requestFailed(response, this.newUserStatus);
-                } else {
-                    this.requestUpdate();
-                }
+                fetch(this.proxyBaseUri + "consent/", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                    body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri + "watch"}", "anonymous": ${anon}}`
+                }).then(response => {
+                    if (!response.ok) {
+                        this.requestFailed(response.statusText, this.newUserStatus);
+                    } else {
+                        fetch(this.proxyBaseUri + "consent/", {
+                            method: "DELETE",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            credentials: "include",
+                            body: `{"reader": "${userId}", "requestUri": "${this.proxyBaseUri + "results"}", "anonymous": ${anon}}`
+                        }).then(response => {
+                            if (!response.ok) {
+                                this.requestFailed(response.statusText, this.newUserStatus);
+                            } else {
+                                if (anon) {
+                                    // Completely remove reader
+                                    fetch(this.proxyBaseUri + "reader/", {
+                                        method: "DELETE",
+                                        headers: {
+                                            "Content-Type": "application/json"
+                                        },
+                                        credentials: "include",
+                                        body: `["${userId}"]`
+                                    }).then(response => {
+                                        if (!response.ok) {
+                                            this.requestFailed(response.statusText, this.newUserStatus);
+                                        } else {
+                                            window.location.reload(true);
+                                        }
+                                    }).catch((error) => {
+                                        this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
+                                        console.error('Error:', error);
+                                    });
+                                }
+                                else {
+                                    window.location.reload(true);
+                                }
+                            }
+                        }).catch((error) => {
+                            this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
+                            console.error('Error:', error);
+                        });
+                    }
                 }).catch((error) => {
                     this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
                     console.error('Error:', error);
                 });
-        }
+            }
+        }).catch((error) => {
+            this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
+            console.error('Error:', error);
+        });
     }
 
     requestFailed(response, messageContainer) {
-        // if (response.status == 400 || response.status == 401) {
-        //     messageContainer.innerHTML = "There was an authorization error! You are lacking the required permissions for this request.";
-        // }
-        // else if (response.status == 500) {
-        //     messageContainer.innerHTML = "There was a server error! Please try again later.";
-        // }
-        // messageContainer.innerHTML = "Server not responding... Please try again later.";
-        messageContainer.innerHTML = "Error: ";
-        if (typeof response === "object")
-            messageContainer.innerHTML += Object.values(response);
-        else
-            messageContainer.innerHTML += response;
+        response.json().then(obj => this.status.innerHTML = JSON.stringify(obj));
+    }
+
+    parseConsentData(data) {
+        let result = {};
+        data.forEach((consentItem) => {
+            consentItem = JSON.parse(consentItem);
+            if (typeof result[consentItem["reader"]] === "undefined")
+                result[consentItem["reader"]] = (consentItem["anonymous"] === "true");
+            else
+                result[consentItem["reader"]] &= (consentItem["anonymous"] === "true");
+        });
+        return result;
     }
 
     // TODO map userId to user name
@@ -388,16 +376,11 @@ export class ConfigPage extends LitElement {
     }
 
     // TODO map userId to user name
-    parseConsent(consent) {
-        // TODO change after single quotes have been removed from consent response
-        consent = consent.replaceAll('\'', '"');
-        //////////////////////////////////////////////////////////////////////////
-        consent = JSON.parse(consent);
+    parseConsent(readerId) {
         return html`
-            <p>${consent["reader"]}</p>
-            <p>${consent["request"]}</p>
-            <input type="checkbox" id="${consent["reader"] + "_deGue"}" name="${consent["reader"]}" @change=${this.setConsent} ?checked=${(consent["anonymous"] === "false")}><label for="${consent["reader"]}">De Gue View</label><br>
-            <input type="button" id="${consent["reader"]}" @click=${this.deleteConsent} class="delete" value="Revoke user consent">
+            <p>${readerId}</p>
+            <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this.consents[readerId]}><label for="${readerId}">De Gue View</label><br>
+            <input type="button" id="${readerId}" @click=${this.deleteConsent} class="delete" value="Revoke user consent">
         `;
     }
 
@@ -422,9 +405,8 @@ export class ConfigPage extends LitElement {
     render() {
         if (!this.sharedCookies) {
             return html`
-                <h1>HyE - YouTube</h1>
                 <h2>Configurations</h2>
-                <i id="cookieStatus">Loading cookies...</i><br>
+                <i id="cookieStatus">Loading cookies <i class="fa fa-spinner fa-pulse"></i></i><br>
                 <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
                 <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>
             `;
@@ -434,7 +416,7 @@ export class ConfigPage extends LitElement {
         if (!this.permissions || this.permissions.length < 1) {
             permissionBox = html`
                 <div class="centerBox">
-                    <h3><i id="permissionStatus">Loading permissions...</i></h3>
+                    <h3><i id="permissionStatus">Loading permissions <i class="fas fa-spinner fa-pulse"></i></i></h3>
                 </div>
             `;
         }
@@ -449,28 +431,27 @@ export class ConfigPage extends LitElement {
                 </ul>
             `;
         }
-        const conses = this.consents;
         let consentBox = "";
-        if (!this.consents || this.consents.length < 1) {
+        if (!this.consents || Object.keys(this.consents).length < 1) {
             consentBox = html`
                 <div class="centerBox">
-                    <h3><i id="consentStatus">Loading consent data...</i></h3>
+                    <h3><i id="consentStatus">Loading consent data <i class="fas fa-spinner fa-pulse"></i></i></h3>
                 </div>
             `;
         }
         else {
+            const readerIds = Object.keys(this.consents);
             consentBox = html`
                 <ul>
-                    ${conses.map((cons) => html`
+                    ${readerIds.map((readerId) => html`
                         <li class="ytConsItem">
-                            ${this.parseConsent(cons)}
+                            ${this.parseConsent(readerId)}
                         </li>`
                     )}
                 </ul>
             `;
         }
         return html`
-            <h1>HyE - YouTube</h1>
             <h2>Configurations</h2>
             <hr>
             <h3>The permissions granted to you by other users</h3>

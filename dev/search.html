@@ -3,11 +3,11 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>HyE - Config</title>
+        <title>HyE - Search</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
         <script src="../node_modules/lit/polyfill-support.js"></script>
-        <script type="module" src="../config-page.js"></script>
+        <script type="module" src="../search-page.js"></script>
         <script type="module" src="../node_modules/las2peer-frontend-statusbar/las2peer-frontend-statusbar.js"></script>
         <style>
             p {
@@ -20,10 +20,10 @@
         </style>
     </head>
     <body>
-        <las2peer-frontend-statusbar service="HyE - YouTube" oidcclientid="HyE-YouTube" base-url="localhost:8081" loginoidcprovider="https://api.learning-layers.eu/o/oauth2/" oidcpopupsigninurl="/dev/config.html" oidcpopupsignouturl="/dev/config.html" oidcsilentsigninurl="/dev/config.html"></las2peer-frontend-statusbar>
+        <las2peer-frontend-statusbar service="HyE - YouTube" oidcclientid="HyE-YouTube" base-url="localhost:8081" loginoidcprovider="https://api.learning-layers.eu/o/oauth2/" oidcpopupsigninurl="/dev/search.html" oidcpopupsignouturl="/dev/search.html" oidcsilentsigninurl="/dev/search.html"></las2peer-frontend-statusbar>
         <openidconnect-popup-signin-callback></openidconnect-popup-signin-callback>
         <openidconnect-popup-signout-callback></openidconnect-popup-signout-callback>
         <openidconnect-signin-silent-callback></openidconnect-signin-silent-callback>
-        <config-page></config-page>
+        <search-page></search-page>
     </body>
 </html>

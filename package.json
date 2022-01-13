@@ -39,7 +39,10 @@
   "author": "Google LLC",
   "license": "BSD-3-Clause",
   "dependencies": {
-    "lit": "^2.0.0"
+    "@fortawesome/fontawesome-free": "^5.15.4",
+    "@fortawesome/fontawesome-svg-core": "^1.2.36",
+    "lit": "^2.0.0",
+    "las2peer-frontend-statusbar": "github:rwth-acis/las2peer-frontend-statusbar"
   },
   "devDependencies": {
     "@11ty/eleventy": "^0.12.1",

@@ -7,17 +7,17 @@
 import {LitElement, html, css} from 'lit';
 
 /**
- * The HyE - YouTube main page
+ * The HyE - YouTube serach results page
  */
 
-export class MainPage extends LitElement {
+export class SearchPage extends LitElement {
     static get styles() {
         return css`
             :host {
-                border: solid 1px gray;
                 display: block;
-                max-width: 800px;
+                border: solid 1px gray;
                 padding: 16px;
+                max-width: 800px;
             }
             .centerBox {
                 width: 500px;
@@ -43,19 +43,20 @@ export class MainPage extends LitElement {
              * The recommendation data obtained from the backend service
              * @type {object}
              */
-            recommendations: {type: Object},
+            results: {type: Object},
         };
     }
 
     constructor() {
         super();
         this.proxyBaseUri = "http://localhost:8080/hye-youtube/";
-        this.recommendations = [];
-        this.fetchRecommendations();
+        this.searchQuery = this.parseSearchQuery(window.location.search);
+        this.results = [];
+        this.fetchResults();
     }
 
-    fetchRecommendations() {
-        fetch(this.proxyBaseUri, {credentials: "include"})
+    fetchResults() {
+        fetch(`${this.proxyBaseUri}results?search_query=${this.searchQuery}`, {credentials: "include"})
             .then(response => {
                 if (!response.ok) {
                     this.requestFailed(response);
@@ -64,17 +65,27 @@ export class MainPage extends LitElement {
                 }
             })
             .then(data => {
-                this.recommendations = data;
+                this.results = data;
                 this.requestUpdate();
             })
             .catch((error) => {
-                console.error('Error:', error);
                 this.status.innerHTML = "Error during request!";
+                console.error('Error:', error);
             });
     }
 
     requestFailed(response) {
         response.json().then(obj => this.status.innerHTML = JSON.stringify(obj));
+    }
+
+    parseSearchQuery(searchQuery) {
+        return searchQuery.split("search_query=")[1].split("&")[0];
+    }
+
+    localLink(link) {
+        if (link[0] === '/')
+            link = link.substring(1);
+        return `/video.html?v=${link.split("v=")[1]}`;
     }
 
     youtubeLink(link) {
@@ -84,79 +95,76 @@ export class MainPage extends LitElement {
             return `https://www.youtube.com/${link}`;
     }
 
-    localLink(link) {
-        if (link[0] === '/')
-            link = link.substring(1);
-        return `/video.html?v=${link.split("v=")[1]}`;
-    }
-
     search() {
         window.location = (`/dev/search.html?search_query=${this.searchBar.value}`);
     }
 
-    parseRecommendation(rec) {
-        if (typeof rec["title"] === "undefined" ||
-          typeof rec["channelName"] === "undefined" ||
-          typeof rec["link"] === "undefined" ||
-          typeof rec["channelLink"] === "undefined" ||
-          typeof rec["thumbnail"] === "undefined" ||
-          typeof rec["avatar"] === "undefined" ||
-          typeof rec["views"] === "undefined" ||
-          typeof rec["uploaded"] === "undefined") {
-            console.log("Incomplete recommendation", rec);
+    parseResult(res) {
+        if (typeof res["title"] === "undefined" ||
+          typeof res["channelName"] === "undefined" ||
+          typeof res["link"] === "undefined" ||
+          typeof res["channelLink"] === "undefined" ||
+          typeof res["thumbnail"] === "undefined" ||
+          typeof res["avatar"] === "undefined" ||
+          typeof res["views"] === "undefined" ||
+          typeof res["uploaded"] === "undefined"||
+          typeof res["description"] === "undefined") {
+            console.log("Incomplete result", res);
             return '';
         }
         return html`
             <div id="recContainer">
-                <a id="thumbnailLink" href="${this.localLink(rec.link)}">
-                    <img id="thumbnail" src="${rec.thumbnail}" />
+                <a id="thumbnailLink" href="${this.localLink(res.link)}">
+                    <img id="thumbnail" src="${res.thumbnail}" />
                 </a>
-                <a id="avatarLink" href="${this.youtubeLink(rec.channelLink)}">
-                    <img id="avatar" src="${rec.avatar}" />
+                <a id="titleLink" href="${this.localLink(res.link)}">
+                    <p id="title">${res.title}</p>
                 </a>
-                <a id="titleLink" href="${this.localLink(rec.link)}">
-                    <p id="title">${rec.title}</p>
+                <a id="channelLink" href="${this.youtubeLink(res.channelLink)}">
+                    <p id="channelName">${res.channelName}</p>
                 </a>
-                <a id="channelLink" href="${this.youtubeLink(rec.channelLink)}">
-                    <p id="channelName">${rec.channelName}</p>
+                <a id="detailsLink" href="${this.localLink(res.link)}">
+                    <p id="details">${res.views} | ${res.uploaded}</p>
                 </a>
-                <a id="detailsLink" href="${this.youtubeLink(rec.link)}">
-                    <p id="details">${rec.views} | ${rec.uploaded}</p>
+                <a id="avatarLink" href="${this.youtubeLink(res.channelLink)}">
+                    <img id="avatar" src="${res.avatar}" />
                 </a>
-                <p id="description">${rec.description}</p>
+                <p>${res.description}</p>
             </div>
         `;
     }
 
     render() {
-        let recommendations = "";
-        const recs = this.recommendations;
-        if (!this.recommendations || this.recommendations.length < 1) {
-            recommendations = html`
-                <link rel="stylesheet" href="../loading-animation/bouncyBalls.css">
+        let searchResults = "";
+        const reses = this.results;
+        if (!this.results || this.results.length < 1) {
+            searchResults = html`
                 <div class="centerBox">
-                    <h3><i id="statusMessage">Loading recommendations <i class="fa fa-spinner fa-pulse"></i></i></h3>
+                    <h3><i id="statusMessage">Loading search results <i class="fa fa-spinner fa-pulse"></i></i></h3>
                 </div>
                 <div class="centerBox">
                     <div id="loadingAnimation"></div>
                 </div>
+                <link rel="stylesheet" href="../loading-animation/bouncyBalls.css">
+                <script src="../loading-animation/bouncyBalls.js">
             `;
         } else {
-            recommendations = html`
+            searchResults = html`
+                <div class="centerBox">
+                    <i id="statusMessage"></i>
+                </div>
                 <ul>
-                    ${recs.map((rec) => html`
+                    ${reses.map((res) => html`
                         <li class="ytRecItem">
-                            ${this.parseRecommendation(rec)}
+                            ${this.parseResult(res)}
                         </li>`
                     )}
                 </ul>
             `;
         }
         return html`
-            <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
-            <script source="../node_modules/@fortawesome/fontawesome-free/js/all.js"></script>
             <input id="searchBar" type="text" placeholder="Search YouTube"><button id="searchBtn" @click=${this.search}><i class="fas fa-search"></i></button>
-            ${recommendations}
+            ${searchResults}
         `;
     }
 
@@ -169,4 +177,4 @@ export class MainPage extends LitElement {
     }
 }
 
-window.customElements.define('main-page', MainPage);
+window.customElements.define('search-page', SearchPage);
