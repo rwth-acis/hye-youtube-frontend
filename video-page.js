@@ -5,6 +5,7 @@
  */
 
 import {LitElement, html, css} from 'lit';
+import "./loading-animation.js";
 
 /**
  * The HyE - YouTube video page
@@ -71,6 +72,7 @@ export class VideoPage extends LitElement {
     fetchRecommendations() {
         fetch(`${this.proxyBaseUri}watch?v=${this.videoId}`, {credentials: "include"})
             .then(response => {
+                this.loadingAnimationContainer.parentNode.removeChild(this.loadingAnimationContainer);
                 if (!response.ok) {
                     this.requestFailed(response);
                 } else {
@@ -146,16 +148,14 @@ export class VideoPage extends LitElement {
         const recs = this.recommendations;
         if (!this.recommendations || this.recommendations.length < 1) {
             sidebar = html`
-                <h3><i id="statusMessage">Loading recommendations <i class="fa fa-spinner fa-pulse"></i></i></h3>
-                <div id="loadingAnimation"></div>
-                <link rel="stylesheet" href="../loading-animation/bouncyBalls.css">
-                <script src="../loading-animation/bouncyBalls.js">
+                <h3><i id="statusMessage">Loading recommendations</i></h3>
+                <div id="loadingAnimationContainer">
+                    <loading-animation></loading-animation>
+                </div>
             `;
         } else {
             sidebar = html`
-                <div class="centerBox">
-                    <i id="statusMessage"></i>
-                </div>
+                <i id="statusMessage"></i>
                 <ul>
                     ${recs.map((rec) => html`
                         <li class="ytRecItem">
@@ -176,6 +176,8 @@ export class VideoPage extends LitElement {
             `;
         }
         return html`
+            <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
+            <script source="../node_modules/@fortawesome/fontawesome-free/js/all.js"></script>
             <input id="searchBar" type="text" placeholder="Search YouTube"><button id="searchBtn" @click=${this.search}><i class="fas fa-search"></i></button>
             ${video}
             <aside id="sidebar">
@@ -190,6 +192,10 @@ export class VideoPage extends LitElement {
 
     get searchBar() {
         return this.renderRoot.querySelector("#searchBar");
+    }
+
+    get loadingAnimationContainer() {
+        return this.renderRoot.querySelector("#loadingAnimationContainer");
     }
 }
 

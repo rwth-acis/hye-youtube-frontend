@@ -5,6 +5,7 @@
  */
 
 import {LitElement, html, css} from 'lit';
+import "./loading-animation.js";
 
 /**
  * The HyE - YouTube main page
@@ -57,6 +58,7 @@ export class MainPage extends LitElement {
     fetchRecommendations() {
         fetch(this.proxyBaseUri, {credentials: "include"})
             .then(response => {
+                this.loadingAnimationContainer.parentNode.removeChild(this.loadingAnimationContainer);
                 if (!response.ok) {
                     this.requestFailed(response);
                 } else {
@@ -133,12 +135,11 @@ export class MainPage extends LitElement {
         const recs = this.recommendations;
         if (!this.recommendations || this.recommendations.length < 1) {
             recommendations = html`
-                <link rel="stylesheet" href="../loading-animation/bouncyBalls.css">
                 <div class="centerBox">
-                    <h3><i id="statusMessage">Loading recommendations <i class="fa fa-spinner fa-pulse"></i></i></h3>
+                    <h3><i id="statusMessage">Loading recommendations</i></h3>
                 </div>
-                <div class="centerBox">
-                    <div id="loadingAnimation"></div>
+                <div id="loadingAnimationContainer" class="centerBox">
+                    <loading-animation></loading-animation>
                 </div>
             `;
         } else {
@@ -166,6 +167,10 @@ export class MainPage extends LitElement {
 
     get searchBar() {
         return this.renderRoot.querySelector("#searchBar");
+    }
+
+    get loadingAnimationContainer() {
+        return this.renderRoot.querySelector("#loadingAnimationContainer");
     }
 }
 

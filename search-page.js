@@ -5,6 +5,7 @@
  */
 
 import {LitElement, html, css} from 'lit';
+import "./loading-animation.js";
 
 /**
  * The HyE - YouTube serach results page
@@ -58,6 +59,7 @@ export class SearchPage extends LitElement {
     fetchResults() {
         fetch(`${this.proxyBaseUri}results?search_query=${this.searchQuery}`, {credentials: "include"})
             .then(response => {
+                this.loadingAnimationContainer.parentNode.removeChild(this.loadingAnimationContainer);
                 if (!response.ok) {
                     this.requestFailed(response);
                 } else {
@@ -140,13 +142,11 @@ export class SearchPage extends LitElement {
         if (!this.results || this.results.length < 1) {
             searchResults = html`
                 <div class="centerBox">
-                    <h3><i id="statusMessage">Loading search results <i class="fa fa-spinner fa-pulse"></i></i></h3>
+                    <h3><i id="statusMessage">Loading search results</i></h3>
                 </div>
-                <div class="centerBox">
-                    <div id="loadingAnimation"></div>
+                <div id="loadingAnimationContainer" class="centerBox">
+                    <loading-animation></loading-animation>
                 </div>
-                <link rel="stylesheet" href="../loading-animation/bouncyBalls.css">
-                <script src="../loading-animation/bouncyBalls.js">
             `;
         } else {
             searchResults = html`
@@ -163,6 +163,8 @@ export class SearchPage extends LitElement {
             `;
         }
         return html`
+            <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
+            <script source="../node_modules/@fortawesome/fontawesome-free/js/all.js"></script>
             <input id="searchBar" type="text" placeholder="Search YouTube"><button id="searchBtn" @click=${this.search}><i class="fas fa-search"></i></button>
             ${searchResults}
         `;
@@ -174,6 +176,10 @@ export class SearchPage extends LitElement {
 
     get searchBar() {
         return this.renderRoot.querySelector("#searchBar");
+    }
+
+    get loadingAnimationContainer() {
+        return this.renderRoot.querySelector("#loadingAnimationContainer");
     }
 }
 

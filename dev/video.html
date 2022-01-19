@@ -20,7 +20,10 @@
       </style>
     </head>
     <body>
-        <las2peer-frontend-statusbar service="HyE - YouTube" oidcclientid="HyE-YouTube" base-url="localhost:8081" loginoidcprovider="https://api.learning-layers.eu/o/oauth2/" oidcpopupsigninurl="/dev/video.html" oidcpopupsignouturl="/dev/video.html" oidcsilentsigninurl="/dev/video.html"></las2peer-frontend-statusbar>
+        <las2peer-frontend-statusbar service="" oidcclientid="HyE-YouTube" base-url="localhost:8081" loginoidcprovider="https://api.learning-layers.eu/o/oauth2/" oidcpopupsigninurl="/dev/video.html" oidcpopupsignouturl="/dev/video.html" oidcsilentsigninurl="/dev/video.html">
+            <div slot="left"><a style="text-decoration:none;color:white;" href="/dev/index.html"><h1>HyE - YouTube</h1></a></div>
+            <div slot="middle"><a style="text-decoration:none;color:white;" href="/dev/config.html"><h2>Settings</h2></a></div>
+        </las2peer-frontend-statusbar>
         <openidconnect-popup-signin-callback></openidconnect-popup-signin-callback>
         <openidconnect-popup-signout-callback></openidconnect-popup-signout-callback>
         <openidconnect-signin-silent-callback></openidconnect-signin-silent-callback>
