@@ -15,10 +15,24 @@ export class MainPage extends LitElement {
     static get styles() {
         return css`
             :host {
-                border: solid 1px gray;
                 display: block;
-                max-width: 800px;
                 padding: 16px;
+            }
+            ul {
+                list-style-type: none;
+            }
+            li {
+                display: inline-block;
+            }
+            p {
+                margin: 0px;
+                padding: 2px;
+            }
+            a {
+                text-decoration: none;
+            }
+            .inline {
+                display: inline;
             }
             .centerBox {
                 width: 500px;
@@ -28,6 +42,59 @@ export class MainPage extends LitElement {
                 justify-content: center;
                 margin-left: -250px;
                 display: flex;
+            }
+            .recommendation {
+                font-family: sans-serif;
+                display: inline-block;
+                padding: 1em 10px;
+            }
+            .videoInfo {
+                display: flex;
+                max-width: fit-content;
+                width: 100%;
+            }
+            #avatar {
+                border-radius: 50%;
+                padding-right: 5px;
+            }
+            #title {
+                margin-top: 0px;
+                font-size: larger;
+                font-weight: bold;
+                color: black;
+            }
+            #channelName {
+                color: black;
+            }
+            #details {
+                color: grey;
+            }
+            #videoDetails {
+                display: inline-block;
+            }
+            #searchBarContainer {
+                display: block;
+                padding: 10px 0px;
+            }
+            #searchBar {
+                width: 80%;
+                height: 30px;
+            }
+            #searchBtn {
+                background-color: lightgrey;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-image: url(/img/search-solid.svg);
+                background-size: 20px;
+                height: 35px;
+                width: 40px;
+                vertical-align: middle;
+            }
+            #searchBtn:hover {
+                cursor: pointer;
+            }
+            #thumbnail {
+                max-width: 360px;
             }
         `;
     }
@@ -50,7 +117,7 @@ export class MainPage extends LitElement {
 
     constructor() {
         super();
-        this.proxyBaseUri = "http://localhost:8080/hye-youtube/";
+        this.proxyBaseUri = "http://localhost:8081/hye-youtube/";
         this.recommendations = [];
         this.fetchRecommendations();
     }
@@ -59,13 +126,18 @@ export class MainPage extends LitElement {
         fetch(this.proxyBaseUri, {credentials: "include"})
             .then(response => {
                 this.loadingAnimationContainer.parentNode.removeChild(this.loadingAnimationContainer);
-                if (!response.ok) {
-                    this.requestFailed(response);
-                } else {
+                if (response.ok) {
                     return response.json();
+                } else {
+                    this.requestFailed(response);
+                    return;
                 }
             })
             .then(data => {
+                if (!data) {
+                    this.status.innerHTML = "Error during request!";
+                    return;
+                }
                 this.recommendations = data;
                 this.requestUpdate();
             })
@@ -89,11 +161,16 @@ export class MainPage extends LitElement {
     localLink(link) {
         if (link[0] === '/')
             link = link.substring(1);
-        return `/video.html?v=${link.split("v=")[1]}`;
+        return `/dev/video.html?v=${link.split("v=")[1]}`;
     }
 
     search() {
         window.location = (`/dev/search.html?search_query=${this.searchBar.value}`);
+    }
+
+    keyup(event) {
+        if (event.keyCode === 13)
+            this.search();
     }
 
     parseRecommendation(rec) {
@@ -109,23 +186,26 @@ export class MainPage extends LitElement {
             return '';
         }
         return html`
-            <div id="recContainer">
+            <div class="recommendation">
                 <a id="thumbnailLink" href="${this.localLink(rec.link)}">
                     <img id="thumbnail" src="${rec.thumbnail}" />
                 </a>
-                <a id="avatarLink" href="${this.youtubeLink(rec.channelLink)}">
-                    <img id="avatar" src="${rec.avatar}" />
-                </a>
-                <a id="titleLink" href="${this.localLink(rec.link)}">
-                    <p id="title">${rec.title}</p>
-                </a>
-                <a id="channelLink" href="${this.youtubeLink(rec.channelLink)}">
-                    <p id="channelName">${rec.channelName}</p>
-                </a>
-                <a id="detailsLink" href="${this.youtubeLink(rec.link)}">
-                    <p id="details">${rec.views} | ${rec.uploaded}</p>
-                </a>
-                <p id="description">${rec.description}</p>
+                <div class="videoInfo">
+                    <a id="avatarLink" href="${this.youtubeLink(rec.channelLink)}">
+                        <img id="avatar" src="${rec.avatar}" />
+                    </a>
+                    <div id="videoDetails">
+                        <a id="titleLink" href="${this.localLink(rec.link)}">
+                            <p id="title">${rec.title}</p>
+                        </a>
+                        <a id="channelLink" href="${this.youtubeLink(rec.channelLink)}">
+                            <p id="channelName">${rec.channelName}</p>
+                        </a>
+                        <a id="detailsLink" href="${this.youtubeLink(rec.link)}">
+                            <p id="details">${rec.views} | ${rec.uploaded}</p>
+                        </a>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -154,9 +234,9 @@ export class MainPage extends LitElement {
             `;
         }
         return html`
-            <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
-            <script source="../node_modules/@fortawesome/fontawesome-free/js/all.js"></script>
-            <input id="searchBar" type="text" placeholder="Search YouTube"><button id="searchBtn" @click=${this.search}><i class="fas fa-search"></i></button>
+            <div id="searchBarContainer" style="width:${window.innerWidth*0.6}px">
+                <input id="searchBar" type="text" placeholder="Search YouTube" @keyup=${this.keyup}><input type="button" id="searchBtn" @click=${this.search}>
+            </div>
             ${recommendations}
         `;
     }

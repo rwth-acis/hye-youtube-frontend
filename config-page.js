@@ -19,6 +19,9 @@ export class ConfigPage extends LitElement {
                 padding: 16px;
                 max-width: 800px;
             }
+            body {
+                font-family: sans-serif;
+            }
             input {
                 border-radius: 0;
                 background-color: inherit;
@@ -59,6 +62,10 @@ export class ConfigPage extends LitElement {
                     transform:rotate(360deg);
                 }
             }
+            #cookieBox {
+                width: 330px;
+                height: 500px;
+            }
         `;
     }
 
@@ -92,7 +99,7 @@ export class ConfigPage extends LitElement {
 
     constructor() {
         super();
-        this.las2peerBaseUri = "http://localhost:8080/";
+        this.las2peerBaseUri = "http://localhost:8081/";
         this._proxyBaseUri = `${this.las2peerBaseUri}hye-youtube/`;
         this._addressbookUri = `${this.las2peerBaseUri}contactservice/addressbook/`;
         this._userData = {};
@@ -130,8 +137,10 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.json();
             } else {
-                response.json().then(data => this._cookieStatus = data);
-                this.requestUpdate();
+                response.json().then(data => {
+                    this._cookieStatus = JSON.stringify(data);
+                    this.requestUpdate();
+                });
             }
             }).then(data => {
                 if (!data)
@@ -156,8 +165,10 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.json();
             } else {
-                response.json().then(data => this._consentStatus = data);
-                return;
+                response.json().then(data => {
+                    this._consentStatus = JSON.stringify(data);
+                    this.requestUpdate();
+                });
             }
             }).then(data => {
                 if (!data)
@@ -181,8 +192,10 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.json();
             } else {
-                response.json().then(data => this._permissionStatus = data);
-                return;
+                response.json().then(data => {
+                    this._permissionStatus = JSON.stringify(data);
+                    this.requestUpdate();
+                });
             }
             }).then(data => {
                 if (!data)
@@ -207,8 +220,10 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.json();
             } else {
-                response.json().then(data => this._addressbookStatus = data);
-                return;
+                response.json().then(data => {
+                    this._addressbookStatus = JSON.stringify(data);
+                    this.requestUpdate();
+                });
             }
             }).then(data => {
                 if (!data)
@@ -256,7 +271,7 @@ export class ConfigPage extends LitElement {
                 this.cookieStatus.innerHTML = "Successfully uploaded cookies.";
                 window.location.reload(true);
             } else {
-                response.json().then(data => this.cookieStatus.innerHTML = data);
+                response.text().then(data => this.cookieStatus.innerHTML = data);
             }
             }).catch((error) => {
                 this.cookieStatus.innerHTML = "Uploading cookies failed!";

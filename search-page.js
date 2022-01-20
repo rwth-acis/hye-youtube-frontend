@@ -16,9 +16,16 @@ export class SearchPage extends LitElement {
         return css`
             :host {
                 display: block;
-                border: solid 1px gray;
                 padding: 16px;
-                max-width: 800px;
+            }
+            ul {
+                list-style-type: none;
+            }
+            a {
+                text-decoration: none;
+            }
+            .inline {
+                display: inline;
             }
             .centerBox {
                 width: 500px;
@@ -28,6 +35,69 @@ export class SearchPage extends LitElement {
                 justify-content: center;
                 margin-left: -250px;
                 display: flex;
+            }
+            .recommendation {
+                font-family: sans-serif;
+                display: flex;
+                padding: 1em;
+            }
+            .videoInfo {
+                display: inline-block;
+                max-width: fit-content;
+                width: 100%;
+                margin: 0px 10px;
+            }
+            #title {
+                margin-top: 0px;
+                font-size: larger;
+                font-weight: bold;
+                color: black;
+            }
+            #avatar {
+                border-radius: 50%;
+                vertical-align: middle;
+            }
+            #channelName {
+                display: inline-block;
+                color: black;
+                padding: 5px;
+            }
+            #details {
+                color: grey;
+            }
+            #description {
+                display: block;
+            }
+            #searchBarContainer {
+                display: block;
+                padding: 10px 0px;
+            }
+            #searchBar {
+                width: 80%;
+                height: 30px;
+            }
+            #searchBtn {
+                background-color: lightgrey;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-image: url(/img/search-solid.svg);
+                background-size: 20px;
+                height: 30px;
+                width: 40px;
+            }
+            #searchBtn:hover {
+                cursor: pointer;
+            }
+            #thumbnail {
+                width: 100%;
+                min-width: 200px;
+                float: left;
+            }
+            @media screen and (max-width: 400px) {
+                .recommendation {
+                    display: inline-block;
+                    padding: 1em;
+                }
             }
         `;
     }
@@ -50,7 +120,7 @@ export class SearchPage extends LitElement {
 
     constructor() {
         super();
-        this.proxyBaseUri = "http://localhost:8080/hye-youtube/";
+        this.proxyBaseUri = "http://localhost:8081/hye-youtube/";
         this.searchQuery = this.parseSearchQuery(window.location.search);
         this.results = [];
         this.fetchResults();
@@ -60,13 +130,18 @@ export class SearchPage extends LitElement {
         fetch(`${this.proxyBaseUri}results?search_query=${this.searchQuery}`, {credentials: "include"})
             .then(response => {
                 this.loadingAnimationContainer.parentNode.removeChild(this.loadingAnimationContainer);
-                if (!response.ok) {
-                    this.requestFailed(response);
-                } else {
+                if (response.ok) {
                     return response.json();
+                } else {
+                    this.requestFailed(response);
+                    return;
                 }
             })
             .then(data => {
+                if (!data) {
+                    this.status.innerHTML = "Error during request!";
+                    return;
+                }
                 this.results = data;
                 this.requestUpdate();
             })
@@ -87,7 +162,7 @@ export class SearchPage extends LitElement {
     localLink(link) {
         if (link[0] === '/')
             link = link.substring(1);
-        return `/video.html?v=${link.split("v=")[1]}`;
+        return `/dev/video.html?v=${link.split("v=")[1]}`;
     }
 
     youtubeLink(link) {
@@ -99,6 +174,11 @@ export class SearchPage extends LitElement {
 
     search() {
         window.location = (`/dev/search.html?search_query=${this.searchBar.value}`);
+    }
+
+    keyup(event) {
+        if (event.keyCode === 13)
+            this.search();
     }
 
     parseResult(res) {
@@ -115,23 +195,22 @@ export class SearchPage extends LitElement {
             return '';
         }
         return html`
-            <div id="recContainer">
+            <div class="recommendation">
                 <a id="thumbnailLink" href="${this.localLink(res.link)}">
                     <img id="thumbnail" src="${res.thumbnail}" />
                 </a>
-                <a id="titleLink" href="${this.localLink(res.link)}">
-                    <p id="title">${res.title}</p>
-                </a>
-                <a id="channelLink" href="${this.youtubeLink(res.channelLink)}">
-                    <p id="channelName">${res.channelName}</p>
-                </a>
-                <a id="detailsLink" href="${this.localLink(res.link)}">
-                    <p id="details">${res.views} | ${res.uploaded}</p>
-                </a>
-                <a id="avatarLink" href="${this.youtubeLink(res.channelLink)}">
-                    <img id="avatar" src="${res.avatar}" />
-                </a>
-                <p>${res.description}</p>
+                <div class="videoInfo">
+                    <a id="titleLink" href="${this.localLink(res.link)}">
+                        <p id="title">${res.title}</p>
+                    </a>
+                    <a id="channelLink" href="${this.youtubeLink(res.channelLink)}">
+                        <img id="avatar" src="${res.avatar}" /><p id="channelName">${res.channelName}</p>
+                    </a>
+                    <a id="detailsLink" href="${this.localLink(res.link)}">
+                        <p id="details">${res.views} | ${res.uploaded}</p>
+                    </a>
+                <p id="description">${res.description}</p>
+                </div>
             </div>
         `;
     }
@@ -141,7 +220,7 @@ export class SearchPage extends LitElement {
         const reses = this.results;
         if (!this.results || this.results.length < 1) {
             searchResults = html`
-                <div class="centerBox">
+                <div>
                     <h3><i id="statusMessage">Loading search results</i></h3>
                 </div>
                 <div id="loadingAnimationContainer" class="centerBox">
@@ -163,9 +242,9 @@ export class SearchPage extends LitElement {
             `;
         }
         return html`
-            <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.css">
-            <script source="../node_modules/@fortawesome/fontawesome-free/js/all.js"></script>
-            <input id="searchBar" type="text" placeholder="Search YouTube"><button id="searchBtn" @click=${this.search}><i class="fas fa-search"></i></button>
+            <div id="searchBarContainer" style="width:${window.innerWidth*0.6}px">
+                <input id="searchBar" type="text" placeholder="Search YouTube" @keyup=${this.keyup}><input id="searchBtn" @click=${this.search}>
+            </div>
             ${searchResults}
         `;
     }

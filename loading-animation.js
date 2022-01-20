@@ -78,7 +78,6 @@ export class LoadingAnimation extends LitElement {
                 :host {
                     border: solid 1px gray;
                     display: block;
-                    max-width: 800px;
                     padding: 16px;
                 }
                 #loadingAnimation {
