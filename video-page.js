@@ -32,13 +32,9 @@ export class VideoPage extends LitElement {
                 display: inline;
             }
             .centerBox {
-                width: 500px;
-                top: 25%;
-                left: 50%;
-                position: absolute;
                 justify-content: center;
-                margin-left: -250px;
                 display: flex;
+                position: absolute;
             }
             .recommendation {
                 font-family: sans-serif;
@@ -53,7 +49,6 @@ export class VideoPage extends LitElement {
             #title {
                 margin-top: 0px;
                 margin-bottom: 0.5em;
-                font-size: large;
                 font-weight: bold;
                 color: black;
             }
@@ -99,6 +94,33 @@ export class VideoPage extends LitElement {
             #thumbnail {
                 float: left;
                 margin-right: 5px;
+            }
+            @media screen and (max-width: 800px) {
+                .recommendation {
+                    display: inline-block;
+                }
+                #title {
+                    margin-top: 0.5em;
+                    margin-bottom: 0.5em;
+                    font-weight: bold;
+                    color: black;
+                }
+                .videoInfo {
+                    float: none;
+                    max-width: fit-content;
+                    width: 100%;
+                }
+                #thumbnail {
+                    float: none;
+                }
+                #loadingAnimationContainer {
+                    float: none;
+                    display: inline-block;
+                }
+                #searchBar {
+                    width: 75%;
+                    height: 30px;
+                }
             }
         `;
     }
@@ -224,15 +246,16 @@ export class VideoPage extends LitElement {
     }
 
     render() {
-        let videoWidth = window.innerWidth * 0.7;
-        let videoHeight = videoWidth * 9 / 16;
+        let videoWidth = window.innerWidth <= 800 ? window.innerWidth : window.innerWidth * 0.7;
+        let sidebarWidth = window.innerWidth <= 800 ? window.innerWidth * 0.75 : window.innerWidth * 0.3 - 105;
+        let videoHeight = videoWidth*9/16;
         let sidebar = "";
         const recs = this.recommendations;
         if (!this.recommendations || this.recommendations.length < 1) {
             sidebar = html`
                 <h3><i id="statusMessage">Loading recommendations</i></h3>
                 <div id="loadingAnimationContainer">
-                    <loading-animation width="${window.innerWidth - videoWidth - 105}" height=${videoHeight}></loading-animation>
+                    <loading-animation width="${sidebarWidth}" height=${videoHeight}></loading-animation>
                 </div>
             `;
         } else {

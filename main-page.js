@@ -35,13 +35,9 @@ export class MainPage extends LitElement {
                 display: inline;
             }
             .centerBox {
-                width: 500px;
-                top: 25%;
-                left: 50%;
-                position: absolute;
                 justify-content: center;
-                margin-left: -250px;
                 display: flex;
+                position: absolute;
             }
             .recommendation {
                 font-family: sans-serif;
@@ -59,7 +55,6 @@ export class MainPage extends LitElement {
             }
             #title {
                 margin-top: 0px;
-                font-size: larger;
                 font-weight: bold;
                 color: black;
             }
@@ -95,6 +90,39 @@ export class MainPage extends LitElement {
             }
             #thumbnail {
                 max-width: 360px;
+            }
+            @media screen and (max-width: 800px) {
+                p {
+                    padding: 0px;
+                }
+                ul {
+                    padding-left: 0px;
+                }
+                .recommendation {
+                    padding: 0px;
+                    padding-bottom: 1em;
+                }
+                .videoInfo {
+                    float: none;
+                    max-width: fit-content;
+                    width: 100%;
+                }
+                #title {
+                    margin-top: 0.5em;
+                    margin-bottom: 0.5em;
+                    font-weight: bold;
+                    color: black;
+                }
+                #thumbnail {
+                    float: none;
+                }
+                #loadingAnimationContainer {
+                    float: none;
+                }
+                #searchBar {
+                    width: 75%;
+                    height: 30px;
+                }
             }
         `;
     }
@@ -215,11 +243,9 @@ export class MainPage extends LitElement {
         const recs = this.recommendations;
         if (!this.recommendations || this.recommendations.length < 1) {
             recommendations = html`
-                <div class="centerBox">
-                    <h3><i id="statusMessage">Loading recommendations</i></h3>
-                </div>
-                <div id="loadingAnimationContainer" class="centerBox">
-                    <loading-animation></loading-animation>
+                <h3><i id="statusMessage">Loading recommendations</i></h3>
+                <div id="loadingAnimationContainer">
+                    <loading-animation width=${window.innerWidth*0.8} height=${window.innerHeight*0.6}></loading-animation>
                 </div>
             `;
         } else {
@@ -234,7 +260,7 @@ export class MainPage extends LitElement {
             `;
         }
         return html`
-            <div id="searchBarContainer" style="width:${window.innerWidth*0.6}px">
+            <div id="searchBarContainer" style="width:${window.innerWidth<=400?window.innerWidth:window.innerWidth*0.6}px">
                 <input id="searchBar" type="text" placeholder="Search YouTube" @keyup=${this.keyup}><input type="button" id="searchBtn" @click=${this.search}>
             </div>
             ${recommendations}

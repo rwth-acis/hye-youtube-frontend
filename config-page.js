@@ -17,7 +17,11 @@ export class ConfigPage extends LitElement {
                 display: block;
                 border: solid 1px gray;
                 padding: 16px;
-                max-width: 800px;
+                width: 800px;
+                font-family: sans-serif;
+                position: absolute;
+                left: 50%;
+                margin-left: -416px;
             }
             body {
                 font-family: sans-serif;
@@ -26,13 +30,38 @@ export class ConfigPage extends LitElement {
                 border-radius: 0;
                 background-color: inherit;
             }
+            input[type="button"] {
+                background-color: cornflowerblue;
+                border: none;
+                padding: 1em;
+            }
+            input[type="button"]:hover {
+                cursor: pointer;
+            }
+            ul {
+                padding: 0px;
+                list-style-type: none;
+            }
+            li {
+                justify-content: center;
+            }
+            input[type="button"].delete {
+                background-color: red;
+                color: #FFF;
+                font-weight: bold;
+                border: 2px red solid;
+            }
+            input[type="button"].disabled {
+                background-color: lightgrey;
+                color: darkgrey;
+            }
+            input[type="button"].disabled:hover {
+                cursor: initial;
+            }
             .centerBox {
                 position: inline-block;
                 justify-content: center;
                 display: flex;
-            }
-            .delete {
-                background-color: red;
             }
             .cookie {
                 display: inline-block;
@@ -50,6 +79,19 @@ export class ConfigPage extends LitElement {
                 -moz-animation:spin 4s linear infinite;
                 animation:spin 4s linear infinite;
             }
+            .ytConsItem {
+                display: flex;
+            }
+            .consentData {
+                display: inline-block;
+                padding-right: 3em;
+            }
+            .grantBtn {
+                float: right;
+            }
+            .userInfo {
+                display: inline;
+            }
             @-moz-keyframes spin {
                 100% { -moz-transform: rotate(360deg); }
             }
@@ -63,8 +105,27 @@ export class ConfigPage extends LitElement {
                 }
             }
             #cookieBox {
-                width: 330px;
+                width: 300px;
                 height: 500px;
+            }
+            #username {
+                display: inline-block;
+            }
+            #avatar {
+                border-radius: 50%;
+                height: 40px;
+                vertical-align: middle;
+            }
+            @media screen and (max-width: 800px) {
+                :host {
+                    display: block;
+                    border: solid 1px gray;
+                    width: 360px;
+                    font-family: sans-serif;
+                    position: absolute;
+                    left: 50%;
+                    margin-left: -196px;
+                }
             }
         `;
     }
@@ -108,11 +169,14 @@ export class ConfigPage extends LitElement {
         this._consents = {};
         this._permissions = [];
         this._addressbook = {};
+        this._deGue = "";
+        this._avatars = {};
         this.fetchUserdata();
         this.fetchCookies();
         this.fetchConsent();
         this.fetchPermissions();
         this.fetchAddressbook();
+        this.fetchPreference();
         this._cookieStatus = html`Loading cookies <div class="cookie spinning"></div>`;
         this._permissionStatus = html`Loading permissions <div class="cookie spinning"></div>`;
         this._consentStatus = html`Loading consent data <div class="cookie spinning"></div>`;
@@ -244,6 +308,8 @@ export class ConfigPage extends LitElement {
     }
 
     fetchUsername(userId) {
+        if (typeof this._addressbook[userId] !== "undefined")
+            return this._addressbook[userId];
         fetch(`${this._addressbookUri}name/${userId}`, {credentials: "include"}).then(response => {
             if (response.ok) {
                 return response.text();
@@ -251,10 +317,47 @@ export class ConfigPage extends LitElement {
                 return userId;
             }
             }).then(data => {
+                this._addressbook[userId] = data;
                 return data
             })
             .catch((error) => {
                 console.error('Error:', error);
+            });
+    }
+
+    fetchPreference() {
+        fetch(this._proxyBaseUri + "preference", {credentials: "include"}).then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            }).then(data => {
+                this._deGue = data.replaceAll('"', '');
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+    }
+
+    fetchAvatar(userName) {
+        if (typeof userName === "undefined")
+            return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+        if (typeof this._avatars[userName] !== "undefined")
+            return this._avatars[userName];
+        fetch(this.las2peerBaseUri + "contactservice/user/" + userName, {credentials: "include"}).then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            }).then(data => {
+                if (!data)
+                    return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+                let strPart = data.split("userImage=")[1];
+                let avatarId = strPart.substr(0, strPart.length-1);
+                let avatarLink = `${this.las2peerBaseUri}fileservice/files/${avatarId}`;
+                this._avatars[userName] = avatarLink;
+                return avatarLink;
+            }).catch((error) => {
+                console.error('Error:', error);
+                return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
             });
     }
 
@@ -324,8 +427,6 @@ export class ConfigPage extends LitElement {
 
     addConsent(userId, anon) {
         this.newUserStatus.innerHTML = "Updating consent <div class=\"cookie spinning\"></div>";
-        let successCounter = 0;
-        // Just send three POSTs, one for each endpoint URI
         fetch(this._proxyBaseUri + "consent/", {
             method: "POST",
             headers: {
@@ -335,41 +436,7 @@ export class ConfigPage extends LitElement {
             body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri}", "anonymous": ${anon}}`
         }).then(response => {
             if (response.ok) {
-                this.newUserStatus.innerHTML = "Updating consent <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
-                fetch(this._proxyBaseUri + "consent/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    credentials: "include",
-                    body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri + "watch"}", "anonymous": ${anon}}`
-                }).then(response => {
-                    if (response.ok) {
-                        this.newUserStatus.innerHTML = "Updating consent <div class=\"cookie\"></div> <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
-                        fetch(this._proxyBaseUri + "consent/", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            credentials: "include",
-                            body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri + "results"}", "anonymous": ${anon}}`
-                        }).then(response => {
-                            if (response.ok) {
-                                window.location.reload(true);
-                            } else {
-                                response.text().then(data => this.newUserStatus.innerHTML = data);
-                            }
-                        }).catch((error) => {
-                            this.newUserStatus.innerHTML = "Error while trying to add new user!";
-                            console.error('Error:', error);
-                        });
-                    } else {
-                        response.text().then(data => this.newUserStatus.innerHTML = data);
-                    }
-                }).catch((error) => {
-                    this.newUserStatus.innerHTML = "Error while trying to add new user!";
-                    console.error('Error:', error);
-                });
+                window.location.reload(true);
             } else {
                 response.text().then(data => this.newUserStatus.innerHTML = data);
             }
@@ -381,7 +448,6 @@ export class ConfigPage extends LitElement {
 
     revokeConsent(userId, anon) {
         this.newUserStatus.innerHTML = "Revoking consent <div class=\"cookie spinning\"></div>";
-        // Just send three POSTs, one for each endpoint URI
         fetch(this._proxyBaseUri + "consent/", {
             method: "DELETE",
             headers: {
@@ -391,70 +457,77 @@ export class ConfigPage extends LitElement {
             body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri}", "anonymous": ${anon}}`
         }).then(response => {
             if (response.ok) {
-                this.newUserStatus.innerHTML = "Revoking consent <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
-                fetch(this._proxyBaseUri + "consent/", {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    credentials: "include",
-                    body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri + "watch"}", "anonymous": ${anon}}`
-                }).then(response => {
-                    if (response.ok) {
-                        this.newUserStatus.innerHTML = "Revoking consent <div class=\"cookie\"></div> <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
-                        fetch(this._proxyBaseUri + "consent/", {
-                            method: "DELETE",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            credentials: "include",
-                            body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri + "results"}", "anonymous": ${anon}}`
-                        }).then(response => {
-                            if (response.ok) {
-                                if (anon) {
-                                    this.newUserStatus.innerHTML = "Revoking consent <div class=\"cookie\"></div> <div class=\"cookie\"></div> <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
-                                    // Completely remove reader
-                                    fetch(this._proxyBaseUri + "reader/", {
-                                        method: "DELETE",
-                                        headers: {
-                                            "Content-Type": "application/json"
-                                        },
-                                        credentials: "include",
-                                        body: `["${userId}"]`
-                                    }).then(response => {
-                                        if (response.ok) {
-                                            window.location.reload(true);
-                                        } else {
-                                            response.text().then(data => this.newUserStatus.innerHTML = data);
-                                        }
-                                    }).catch((error) => {
-                                        this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                                        console.error('Error:', error);
-                                    });
-                                }
-                                else {
-                                    window.location.reload(true);
-                                }
-                            } else {
-                                response.text().then(data => this.newUserStatus.innerHTML = data);
-                            }
-                        }).catch((error) => {
-                            this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                            console.error('Error:', error);
-                        });
-                    } else {
-                        response.text().then(data => this.newUserStatus.innerHTML = data);
-                    }
-                }).catch((error) => {
-                    this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
-                    console.error('Error:', error);
-                });
-            }
-            else {
+                if (anon) {
+                    this.newUserStatus.innerHTML = "Revoking consent <div class=\"cookie\"></div> <div class=\"cookie spinning\"></div>";
+                    // Completely remove reader
+                    fetch(this._proxyBaseUri + "reader/", {
+                        method: "DELETE",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        credentials: "include",
+                        body: `["${userId}"]`
+                    }).then(response => {
+                        if (response.ok) {
+                            window.location.reload(true);
+                        } else {
+                            response.text().then(data => this.newUserStatus.innerHTML = data);
+                        }
+                    }).catch((error) => {
+                        this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
+                        console.error('Error:', error);
+                    });
+                }
+                else {
+                    window.location.reload(true);
+                }
+            } else {
                 response.text().then(data => this.newUserStatus.innerHTML = data);
             }
         }).catch((error) => {
             this.newUserStatus.innerHTML = "Error while trying to revoke consent!";
+            console.error('Error:', error);
+        });
+    }
+
+    updatePreference(userId) {
+        this.permissionStatus.innerHTML = "Updating De Gue settings <div class=\"cookie spinning\"></div>";
+        fetch(this._proxyBaseUri + "preference/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain"
+            },
+            credentials: "include",
+            body: `"${userId}"`
+        }).then(response => {
+            if (response.ok) {
+                response.text().then(data => {
+                    this.permissionStatus.innerHTML = data;
+                    window.location.reload(true);
+                });
+            } else {
+                response.text().then(data => {this.permissionStatus.innerHTML = data});
+            }
+        }).catch((error) => {
+            this.permissionStatus.innerHTML = "Error while trying to update De Gue view!";
+            console.error('Error:', error);
+        });
+    }
+
+    resetPreference() {
+        this.permissionStatus.innerHTML = "Deactivating De Gue view <div class=\"cookie spinning\"></div>";
+        fetch(this._proxyBaseUri + "preference/", {method: "DELETE", credentials: "include"
+        }).then(response => {
+            if (response.ok) {
+                response.text().then(data => {
+                    this.permissionStatus.innerHTML = data;
+                    window.location.reload(true);
+                });
+            } else {
+                response.text().then(data => {this.permissionStatus.innerHTML = data});
+            }
+        }).catch((error) => {
+            this.permissionStatus.innerHTML = "Error while trying to deactivate De Gue view!";
             console.error('Error:', error);
         });
     }
@@ -472,31 +545,51 @@ export class ConfigPage extends LitElement {
     }
 
     parsePermission(permission) {
-        return (typeof this._addressbook[permission] === "undefined")
-            ? html`<p>${this.fetchUsername(permission)}</p>`
-            : html`<p>${this._addressbook[permission]}</p>
+        console.log(this._deGue, permission);
+        let userName = this.fetchUsername(permission);
+        return html`
+            <div class="userInfo">
+                <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                <p id="username">${userName}</p>
+            </div>
+                ${this._deGue === permission
+            ? html`<input type="button" class="delete grantBtn" @click=${this.resetPreference} value="Deactivate De Gue">`
+            : html`<input name="${permission}" class="grantBtn" type="button" @click=${this.setUserPreference} value="Activate De Gue view">`}
         `;
     }
 
     parseConsent(readerId) {
-        return html`${(typeof this._addressbook[readerId] === "undefined")
-            ? html`<p>${this.fetchUsername(readerId)}</p>`
-            : html`<p>${this._addressbook[readerId]}</p>
-            `}
-            <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this._consents[readerId]}><label for="${readerId}">De Gue View</label><br>
-            <input type="button" id="${readerId}" @click=${this.deleteConsent} class="delete" value="Revoke user consent">
+        let userName = this.fetchUsername(readerId);
+        return html`
+            <div class="userInfo">
+                <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                <div class="consentData">
+                    <p>${userName}</p>
+                    <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this._consents[readerId]}>
+                    <label for="${readerId}">De Gue View</label>
+                </div>
+            </div>
+            <input type="button" id="${readerId}" @click=${this.deleteConsent} class="delete grantBtn" value="Revoke user consent">
         `;
     }
 
     parseUserId(userId) {
+        let userName = this.fetchUsername(userId);
         return (typeof this._consents[userId] !== "undefined" || this._userData["agentid"] === userId)
             ? ``
             : html`
                 <li class="l2pUser">
-                    <p>${this._addressbook[userId]}</p>
-                    <input type="button" id="${userId}" @click=${this.grantAccess} value="Grant cookie access">
+                    <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                    <p id="username">${userName}</p>
+                    <input type="button" name="${userId}" class="grantBtn" @click=${this.grantAccess} value="Grant cookie access">
                 </li>
         `;
+    }
+
+    setUserPreference(event) {
+        let target = event.target;
+        let userId = target.name;
+        this.updatePreference(userId);
     }
 
     setConsent(event) {
@@ -519,7 +612,7 @@ export class ConfigPage extends LitElement {
 
     grantAccess(event) {
         let target = event.target;
-        let userId = target.id;
+        let userId = target.name;
         this.addReader(userId);
     }
 
@@ -529,9 +622,6 @@ export class ConfigPage extends LitElement {
                 <h2>Configurations</h2>
                 <hr>
                 <h3>The permissions granted to you by other users</h3>
-                <div class="centerBox">
-                    <h3><i id="permissionStatus">${this._permissionStatus}</i></h3>
-                </div>
                 <ul>
                     ${this._permissions.map((perm) => html`
                         <li class="ytPermItem">
@@ -539,11 +629,11 @@ export class ConfigPage extends LitElement {
                         </li>`
                     )}
                 </ul>
+                <div class="centerBox">
+                    <i id="permissionStatus">${this._permissionStatus}</i>
+                </div>
                 <hr>
                 <h3>The permissions granted by you to other users</h3>
-                <div class="centerBox">
-                    <h3><i id="consentStatus">${this._consentStatus}</i></h3>
-                </div>
                 <ul>
                     ${Object.keys(this._consents).map((readerId) => html`
                         <li class="ytConsItem">
@@ -551,12 +641,18 @@ export class ConfigPage extends LitElement {
                         </li>`
                     )}
                 </ul>
+                <div class="centerBox">
+                    <i id="consentStatus">${this._consentStatus}</i>
+                </div>
+                <hr>
+                <h3>Addressbook</h3>
                 <!---<input id="newUserId" type="text" placeholder="User ID"><input id="newUserBtn" type="button" value="Add new user" @click=${this.addReader}>--->
-                <i id="newUserStatus">${this._newUserStatus}</i>
-                <h3><i id="addressbookStatus">${this._addressbookStatus}</i></h3>
                 <ul>
                     ${Object.keys(this._addressbook).map((userId) => this.parseUserId(userId))}
                 </ul>
+                <i id="newUserStatus">${this._newUserStatus}</i>
+                <i id="addressbookStatus">${this._addressbookStatus}</i>
+                <hr>
                 <input type="button" value="Delete my cookies" @click=${this.deleteCookies} class="delete">
                 <i id="cookieStatus">${this._cookieStatus}</i>`
             : ( this._cookieBox

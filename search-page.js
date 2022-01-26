@@ -28,13 +28,9 @@ export class SearchPage extends LitElement {
                 display: inline;
             }
             .centerBox {
-                width: 500px;
-                top: 25%;
-                left: 50%;
-                position: absolute;
                 justify-content: center;
-                margin-left: -250px;
-                display: flex;
+                display: inline;
+                position: absolute;
             }
             .recommendation {
                 font-family: sans-serif;
@@ -49,7 +45,6 @@ export class SearchPage extends LitElement {
             }
             #title {
                 margin-top: 0px;
-                font-size: larger;
                 font-weight: bold;
                 color: black;
             }
@@ -90,13 +85,42 @@ export class SearchPage extends LitElement {
             }
             #thumbnail {
                 width: 100%;
-                min-width: 200px;
+                min-width: 360px;
+                max-width: 360px;
                 float: left;
             }
-            @media screen and (max-width: 400px) {
+            @media screen and (max-width: 800px) {
+                p {
+                    padding: 0px;
+                }
+                ul {
+                    padding-left: 0px;
+                }
                 .recommendation {
                     display: inline-block;
-                    padding: 1em;
+                    padding: 0px;
+                    padding-bottom: 1em;
+                }
+                .videoInfo {
+                    float: none;
+                    max-width: fit-content;
+                    width: 100%;
+                }
+                #title {
+                    margin-top: 0.5em;
+                    margin-bottom: 0.5em;
+                    font-weight: bold;
+                    color: black;
+                }
+                #thumbnail {
+                    float: none;
+                }
+                #loadingAnimationContainer {
+                    float: none;
+                }
+                #searchBar {
+                    width: 75%;
+                    height: 30px;
                 }
             }
         `;
@@ -220,11 +244,9 @@ export class SearchPage extends LitElement {
         const reses = this.results;
         if (!this.results || this.results.length < 1) {
             searchResults = html`
-                <div>
-                    <h3><i id="statusMessage">Loading search results</i></h3>
-                </div>
-                <div id="loadingAnimationContainer" class="centerBox">
-                    <loading-animation></loading-animation>
+                <h3><i id="statusMessage">Loading search results</i></h3>
+                <div id="loadingAnimationContainer">
+                    <loading-animation width=${window.innerWidth*0.8} height=${window.innerHeight*0.6}></loading-animation>
                 </div>
             `;
         } else {
@@ -242,7 +264,7 @@ export class SearchPage extends LitElement {
             `;
         }
         return html`
-            <div id="searchBarContainer" style="width:${window.innerWidth*0.6}px">
+            <div id="searchBarContainer" style="width:${window.innerWidth<=400?window.innerWidth:window.innerWidth*0.6}px">
                 <input id="searchBar" type="text" placeholder="Search YouTube" @keyup=${this.keyup}><input id="searchBtn" @click=${this.search}>
             </div>
             ${searchResults}
