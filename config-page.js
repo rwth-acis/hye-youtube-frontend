@@ -37,6 +37,7 @@ export class ConfigPage extends LitElement {
             }
             input[type="button"]:hover {
                 cursor: pointer;
+                color: white;
             }
             ul {
                 padding: 0px;
@@ -92,6 +93,10 @@ export class ConfigPage extends LitElement {
             .userInfo {
                 display: inline;
             }
+            .buttonBox {
+                display: flex;
+                width: 100%;
+            }
             @-moz-keyframes spin {
                 100% { -moz-transform: rotate(360deg); }
             }
@@ -104,9 +109,13 @@ export class ConfigPage extends LitElement {
                     transform:rotate(360deg);
                 }
             }
-            #cookieBox {
+            #configBox {
                 width: 300px;
                 height: 500px;
+            }
+            #cookieBox {
+                width: 97%;
+                height: 85%;
             }
             #username {
                 display: inline-block;
@@ -115,6 +124,16 @@ export class ConfigPage extends LitElement {
                 border-radius: 50%;
                 height: 40px;
                 vertical-align: middle;
+            }
+            #cookieBtn {
+                width: 50%;
+                margin-left: 8px;
+            }
+            #pluginLink {
+                width: 50%;
+            }
+            #pluginBtn {
+                width: 100%;
             }
             @media screen and (max-width: 800px) {
                 :host {
@@ -201,9 +220,16 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.json();
             } else {
-                response.json().then(data => {
+                response.json()
+                  .then(data => {
                     this._cookieStatus = JSON.stringify(data);
                     this.requestUpdate();
+                  })
+                  .catch((error) => {
+                      this._sharedCookies = false;
+                      this._cookieStatus = "Error while checking for cookies!";
+                      console.error('Error:', error);
+                      this.requestUpdate();
                 });
             }
             }).then(data => {
@@ -221,7 +247,7 @@ export class ConfigPage extends LitElement {
                 this._cookieStatus = "Error while checking for cookies!";
                 console.error('Error:', error);
                 this.requestUpdate();
-            });
+        });
     }
 
     fetchConsent() {
@@ -368,7 +394,7 @@ export class ConfigPage extends LitElement {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: this.cookieBox.value
+            body: this.filterCookies(this.cookieBox.value)
         }).then(response => {
             if (response.ok) {
                 this.cookieStatus.innerHTML = "Successfully uploaded cookies.";
@@ -532,6 +558,20 @@ export class ConfigPage extends LitElement {
         });
     }
 
+    filterCookies(cookieString) {
+        let cookies = JSON.parse(cookieString);
+        let result = [];
+        if (typeof cookies !== "object" || typeof cookies.length === "undefined")
+            return;
+        for (let i = 0; i < cookies.length; ++i) {
+            let cookie = cookies[i];
+            console.log(cookie);
+            if (!(typeof cookie["name"] === "undefined" || cookie["name"].startsWith("ST-")))
+                result.push(cookies[i]);
+        }
+        return JSON.stringify(result);
+    }
+
     parseConsentData(data) {
         let result = {};
         data.forEach((consentItem) => {
@@ -658,9 +698,14 @@ export class ConfigPage extends LitElement {
             : ( this._cookieBox
                 ? html`
                     <h2>Configurations</h2>
-                    <i id="cookieStatus">${this._cookieStatus}</i><br>
-                    <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
-                    <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>`
+                    <div id="configBox">
+                        <i id="cookieStatus">${this._cookieStatus}</i><br>
+                        <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
+                        <div class="buttonBox">
+                            <a id="pluginLink" target="_blank" href="https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/"><input type="button" id="pluginBtn" value="Get YouTube Cookies"></a>
+                            <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>
+                        </div>
+                    </div>`
                 : html`
                     <h2>Configurations</h2>
                     <i id="cookieStatus">${this._cookieStatus}</i><br>`

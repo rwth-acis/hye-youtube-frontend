@@ -46,8 +46,7 @@ export class MainPage extends LitElement {
             }
             .videoInfo {
                 display: flex;
-                max-width: fit-content;
-                width: 100%;
+                width: 360px;
             }
             #avatar {
                 border-radius: 50%;
@@ -76,14 +75,16 @@ export class MainPage extends LitElement {
                 height: 30px;
             }
             #searchBtn {
-                background-color: lightgrey;
                 background-repeat: no-repeat;
                 background-position: center;
                 background-image: url(/img/search-solid.svg);
-                background-size: 20px;
+                background-size: 25px;
                 height: 35px;
                 width: 40px;
                 vertical-align: middle;
+                background-color: lightblue;
+                border: none;
+                padding: 16px;
             }
             #searchBtn:hover {
                 cursor: pointer;
@@ -189,11 +190,11 @@ export class MainPage extends LitElement {
     localLink(link) {
         if (link[0] === '/')
             link = link.substring(1);
-        return `/dev/video.html?v=${link.split("v=")[1]}`;
+        return `/watch?v=${link.split("v=")[1]}`;
     }
 
     search() {
-        window.location = (`/dev/search.html?search_query=${this.searchBar.value}`);
+        window.location = (`/results?search_query=${this.searchBar.value}`);
     }
 
     keyup(event) {

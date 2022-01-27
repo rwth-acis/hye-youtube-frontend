@@ -72,13 +72,15 @@ export class SearchPage extends LitElement {
                 height: 30px;
             }
             #searchBtn {
-                background-color: lightgrey;
                 background-repeat: no-repeat;
                 background-position: center;
                 background-image: url(/img/search-solid.svg);
                 background-size: 20px;
                 height: 30px;
                 width: 40px;
+                background-color: lightblue;
+                border: none;
+                padding: 3px;
             }
             #searchBtn:hover {
                 cursor: pointer;
@@ -186,7 +188,7 @@ export class SearchPage extends LitElement {
     localLink(link) {
         if (link[0] === '/')
             link = link.substring(1);
-        return `/dev/video.html?v=${link.split("v=")[1]}`;
+        return `/watch?v=${link.split("v=")[1]}`;
     }
 
     youtubeLink(link) {
@@ -197,7 +199,7 @@ export class SearchPage extends LitElement {
     }
 
     search() {
-        window.location = (`/dev/search.html?search_query=${this.searchBar.value}`);
+        window.location = (`/results?search_query=${this.searchBar.value}`);
     }
 
     keyup(event) {
