@@ -75,9 +75,9 @@ export class SearchPage extends LitElement {
                 background-repeat: no-repeat;
                 background-position: center;
                 background-image: url(/img/search-solid.svg);
-                background-size: 20px;
+                background-size: 18px;
                 height: 30px;
-                width: 40px;
+                width: 60px;
                 background-color: lightblue;
                 border: none;
                 padding: 3px;
@@ -90,6 +90,20 @@ export class SearchPage extends LitElement {
                 min-width: 360px;
                 max-width: 360px;
                 float: left;
+            }
+            #length {
+                position: relative;
+                z-index: 100;
+                float: right;
+                padding: 5px;
+                background-color: rgba(0, 0, 0, 0.8);
+                text-decoration: none;
+                color: white;
+                font-size: small;
+                text-align: center;
+                margin-top: 140px;
+                margin-left: -60px;
+                margin-right: 10px;
             }
             @media screen and (max-width: 800px) {
                 p {
@@ -182,7 +196,11 @@ export class SearchPage extends LitElement {
     }
 
     parseSearchQuery(searchQuery) {
-        return searchQuery.split("search_query=")[1].split("&")[0];
+        try {
+            return searchQuery.split("search_query=")[1].split("&")[0];
+        } catch (e) {
+            return "Search YouTube";
+        }
     }
 
     localLink(link) {
@@ -213,6 +231,7 @@ export class SearchPage extends LitElement {
           typeof res["link"] === "undefined" ||
           typeof res["channelLink"] === "undefined" ||
           typeof res["thumbnail"] === "undefined" ||
+          typeof res["length"] === "undefined" ||
           typeof res["avatar"] === "undefined" ||
           typeof res["views"] === "undefined" ||
           typeof res["uploaded"] === "undefined"||
@@ -224,6 +243,7 @@ export class SearchPage extends LitElement {
             <div class="recommendation">
                 <a id="thumbnailLink" href="${this.localLink(res.link)}">
                     <img id="thumbnail" src="${res.thumbnail}" />
+                    <div id="length"><p>${res.length}</p></div>
                 </a>
                 <div class="videoInfo">
                     <a id="titleLink" href="${this.localLink(res.link)}">
@@ -267,7 +287,7 @@ export class SearchPage extends LitElement {
         }
         return html`
             <div id="searchBarContainer" style="width:${window.innerWidth<=400?window.innerWidth:window.innerWidth*0.6}px">
-                <input id="searchBar" type="text" placeholder="Search YouTube" @keyup=${this.keyup}><input id="searchBtn" @click=${this.search}>
+                <input id="searchBar" type="text" placeholder="${this.searchQuery}" @keyup=${this.keyup}><input id="searchBtn" @click=${this.search}>
             </div>
             ${searchResults}
         `;

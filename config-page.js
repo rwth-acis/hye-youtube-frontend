@@ -218,11 +218,11 @@ export class ConfigPage extends LitElement {
     fetchCookies() {
         fetch(this._proxyBaseUri + "cookies/", {credentials: "include"}).then(response => {
             if (response.ok) {
-                return response.json();
+                return response.text();
             } else {
-                response.json()
+                response.text()
                   .then(data => {
-                    this._cookieStatus = JSON.stringify(data);
+                    this._cookieStatus = data;
                     this.requestUpdate();
                   })
                   .catch((error) => {
@@ -235,7 +235,7 @@ export class ConfigPage extends LitElement {
             }).then(data => {
                 if (!data)
                     return;
-                if (data.length === 0) {
+                if (data === "No cookies found.") {
                     this._cookieStatus = "Currently you have not uploaded any valid YouTube cookies. Please do so, in order to use this service :)";
                     this._cookieBox = true;
                 } else {

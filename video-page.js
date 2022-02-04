@@ -83,9 +83,9 @@ export class VideoPage extends LitElement {
                 background-repeat: no-repeat;
                 background-position: center;
                 background-image: url(/img/search-solid.svg);
-                background-size: 20px;
+                background-size: 18px;
                 height: 30px;
-                width: 40px;
+                width: 60px;
                 background-color: lightblue;
                 border: none;
                 padding: 3px;
@@ -96,6 +96,20 @@ export class VideoPage extends LitElement {
             #thumbnail {
                 float: left;
                 margin-right: 5px;
+            }
+            #length {
+                position: relative;
+                z-index: 100;
+                float: right;
+                padding: 5px;
+                background-color: rgba(0, 0, 0, 0.8);
+                text-decoration: none;
+                color: white;
+                font-size: small;
+                text-align: center;
+                margin-top: 60px;
+                margin-left: -60px;
+                margin-right: 10px;
             }
             @media screen and (max-width: 800px) {
                 .recommendation {
@@ -222,6 +236,7 @@ export class VideoPage extends LitElement {
           typeof rec["link"] === "undefined" ||
           typeof rec["channelLink"] === "undefined" ||
           typeof rec["thumbnail"] === "undefined" ||
+          typeof rec["length"] === "undefined" ||
           typeof rec["views"] === "undefined" ||
           typeof rec["uploaded"] === "undefined") {
             console.log("Incomplete recommendation", rec);
@@ -231,6 +246,7 @@ export class VideoPage extends LitElement {
             <div class="recommendation">
                 <a id="thumbnailLink" href="${this.localLink(rec.link)}">
                     <img id="thumbnail" src="${rec.thumbnail}" />
+                    <div id="length"><p>${rec.length}</p></div>
                 </a>
                 <div class="videoInfo">
                     <a id="titleLink" href="${this.localLink(rec.link)}">

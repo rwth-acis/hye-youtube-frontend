@@ -78,9 +78,9 @@ export class MainPage extends LitElement {
                 background-repeat: no-repeat;
                 background-position: center;
                 background-image: url(/img/search-solid.svg);
-                background-size: 25px;
-                height: 35px;
-                width: 40px;
+                background-size: 18px;
+                height: 30px;
+                width: 60px;
                 vertical-align: middle;
                 background-color: lightblue;
                 border: none;
@@ -91,6 +91,21 @@ export class MainPage extends LitElement {
             }
             #thumbnail {
                 max-width: 360px;
+            }
+            #length {
+                position: relative;
+                z-index: 100;
+                padding: 5px;
+                background-color: rgba(0,0,0,80%);
+                text-decoration: none;
+                color: white;
+                font-size: small;
+                text-align: center;
+                width: fit-content;
+                left: 300px;
+                max-width: 60px;
+                margin-top: -40px;
+                margin-bottom: 20px;
             }
             @media screen and (max-width: 800px) {
                 p {
@@ -208,6 +223,7 @@ export class MainPage extends LitElement {
           typeof rec["link"] === "undefined" ||
           typeof rec["channelLink"] === "undefined" ||
           typeof rec["thumbnail"] === "undefined" ||
+          typeof rec["length"] === "undefined" ||
           typeof rec["avatar"] === "undefined" ||
           typeof rec["views"] === "undefined" ||
           typeof rec["uploaded"] === "undefined") {
@@ -218,6 +234,7 @@ export class MainPage extends LitElement {
             <div class="recommendation">
                 <a id="thumbnailLink" href="${this.localLink(rec.link)}">
                     <img id="thumbnail" src="${rec.thumbnail}" />
+                    <div id="length"><p>${rec.length}</p></div>
                 </a>
                 <div class="videoInfo">
                     <a id="avatarLink" href="${this.youtubeLink(rec.channelLink)}">
