@@ -51,6 +51,7 @@ export class ConfigPage extends LitElement {
                 color: #FFF;
                 font-weight: bold;
                 border: 2px red solid;
+                max-height: 50px;
             }
             input[type="button"].disabled {
                 background-color: lightgrey;
@@ -80,6 +81,9 @@ export class ConfigPage extends LitElement {
                 -moz-animation:spin 4s linear infinite;
                 animation:spin 4s linear infinite;
             }
+            .small {
+                font-size: small;
+            }
             .ytConsItem {
                 display: flex;
             }
@@ -96,6 +100,9 @@ export class ConfigPage extends LitElement {
             .buttonBox {
                 display: flex;
                 width: 100%;
+            }
+            .ytPermItem {
+                padding: 10px;
             }
             @-moz-keyframes spin {
                 100% { -moz-transform: rotate(360deg); }
@@ -134,6 +141,9 @@ export class ConfigPage extends LitElement {
             }
             #pluginBtn {
                 width: 100%;
+            }
+            #userName {
+                margin: 0px 0px 5px 5px;
             }
             @media screen and (max-width: 800px) {
                 :host {
@@ -348,6 +358,7 @@ export class ConfigPage extends LitElement {
             })
             .catch((error) => {
                 console.error('Error:', error);
+                return userId;
             });
     }
 
@@ -378,8 +389,9 @@ export class ConfigPage extends LitElement {
                     return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
                 let strPart = data.split("userImage=")[1];
                 let avatarId = strPart.substr(0, strPart.length-1);
-                let avatarLink = `${this.las2peerBaseUri}fileservice/files/${avatarId}`;
+                let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
                 this._avatars[userName] = avatarLink;
+                this.requestUpdate();
                 return avatarLink;
             }).catch((error) => {
                 console.error('Error:', error);
@@ -394,7 +406,7 @@ export class ConfigPage extends LitElement {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: this.filterCookies(this.cookieBox.value)
+            body: this.parseCookies(this.cookieBox.value)
         }).then(response => {
             if (response.ok) {
                 this.cookieStatus.innerHTML = "Successfully uploaded cookies.";
@@ -517,14 +529,14 @@ export class ConfigPage extends LitElement {
     }
 
     updatePreference(userId) {
-        this.permissionStatus.innerHTML = "Updating De Gue settings <div class=\"cookie spinning\"></div>";
+        this.permissionStatus.innerHTML = "Updating recommendation settings <div class=\"cookie spinning\"></div>";
         fetch(this._proxyBaseUri + "preference/", {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain"
             },
             credentials: "include",
-            body: `"${userId}"`
+            body: `${userId}`
         }).then(response => {
             if (response.ok) {
                 response.text().then(data => {
@@ -535,13 +547,13 @@ export class ConfigPage extends LitElement {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
             }
         }).catch((error) => {
-            this.permissionStatus.innerHTML = "Error while trying to update De Gue view!";
+            this.permissionStatus.innerHTML = "Error while trying to update recommendation settings!";
             console.error('Error:', error);
         });
     }
 
     resetPreference() {
-        this.permissionStatus.innerHTML = "Deactivating De Gue view <div class=\"cookie spinning\"></div>";
+        this.permissionStatus.innerHTML = "Resetting recommendation settings <div class=\"cookie spinning\"></div>";
         fetch(this._proxyBaseUri + "preference/", {method: "DELETE", credentials: "include"
         }).then(response => {
             if (response.ok) {
@@ -553,21 +565,23 @@ export class ConfigPage extends LitElement {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
             }
         }).catch((error) => {
-            this.permissionStatus.innerHTML = "Error while trying to deactivate De Gue view!";
+            this.permissionStatus.innerHTML = "Error while trying to reset recommendation settings!";
             console.error('Error:', error);
         });
     }
 
-    filterCookies(cookieString) {
+    parseCookies(cookieString) {
         let cookies = JSON.parse(cookieString);
         let result = [];
         if (typeof cookies !== "object" || typeof cookies.length === "undefined")
             return;
         for (let i = 0; i < cookies.length; ++i) {
             let cookie = cookies[i];
-            console.log(cookie);
-            if (!(typeof cookie["name"] === "undefined" || cookie["name"].startsWith("ST-")))
-                result.push(cookies[i]);
+            if (!(typeof cookie["name"] === "undefined" || typeof cookie["value"] === "undefined" ||
+              // Cookies starting with 'st-' seem to cause problems in authentication
+              cookie["name"].startsWith("ST-")))
+                // We just care about name and value
+                result.push({"name": cookie["name"], "value": cookie["value"]});
         }
         return JSON.stringify(result);
     }
@@ -585,28 +599,27 @@ export class ConfigPage extends LitElement {
     }
 
     parsePermission(permission) {
-        console.log(this._deGue, permission);
         let userName = this.fetchUsername(permission);
+        let avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
-                <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                <img id="avatar" src="${avatarLink}" />
                 <p id="username">${userName}</p>
             </div>
-                ${this._deGue === permission
-            ? html`<input type="button" class="delete grantBtn" @click=${this.resetPreference} value="Deactivate De Gue">`
-            : html`<input name="${permission}" class="grantBtn" type="button" @click=${this.setUserPreference} value="Activate De Gue view">`}
+            <input id="${permission}" name="deGue" type="radio" @change=${this.setUserPreference} ?checked=${this._deGue === permission}>
         `;
     }
 
     parseConsent(readerId) {
         let userName = this.fetchUsername(readerId);
+        let avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
-                <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                <img id="avatar" src="${avatarLink}" style="vertical-align: baseline;"/>
                 <div class="consentData">
-                    <p>${userName}</p>
+                    <p id=userName>${userName}</p>
                     <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this._consents[readerId]}>
-                    <label for="${readerId}">De Gue View</label>
+                    <label class="small" for="${readerId}">Permit non-anonymous requests</label>
                 </div>
             </div>
             <input type="button" id="${readerId}" @click=${this.deleteConsent} class="delete grantBtn" value="Revoke user consent">
@@ -615,11 +628,12 @@ export class ConfigPage extends LitElement {
 
     parseUserId(userId) {
         let userName = this.fetchUsername(userId);
+        let avatarLink = this.fetchAvatar(userName);
         return (typeof this._consents[userId] !== "undefined" || this._userData["agentid"] === userId)
             ? ``
             : html`
                 <li class="l2pUser">
-                    <img id="avatar" src="${this.fetchAvatar(userName)}" />
+                    <img id="avatar" src="${avatarLink}" />
                     <p id="username">${userName}</p>
                     <input type="button" name="${userId}" class="grantBtn" @click=${this.grantAccess} value="Grant cookie access">
                 </li>
@@ -628,7 +642,7 @@ export class ConfigPage extends LitElement {
 
     setUserPreference(event) {
         let target = event.target;
-        let userId = target.name;
+        let userId = target.id;
         this.updatePreference(userId);
     }
 
@@ -661,8 +675,14 @@ export class ConfigPage extends LitElement {
             ? html`
                 <h2>Configurations</h2>
                 <hr>
-                <h3>The permissions granted to you by other users</h3>
-                <ul>
+                <h3>Configure recommendations</h3>
+                <ul id="deGueList">
+                    <li class="ytPermItem">
+                        <input id="mixed" type="radio" name="deGue" @change=${this.resetPreference} ?checked=${this._deGue === ""}>
+                        <label for="mixed">Mixed recommendations</label>
+                    </li>
+                    ${this._permissions.length > 0 ?
+                        html`<b>Get exclusive recommendations for user</b>` : ``}
                     ${this._permissions.map((perm) => html`
                         <li class="ytPermItem">
                             ${this.parsePermission(perm)}
@@ -700,7 +720,7 @@ export class ConfigPage extends LitElement {
                     <h2>Configurations</h2>
                     <div id="configBox">
                         <i id="cookieStatus">${this._cookieStatus}</i><br>
-                        <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
+                        <textarea id="cookieBox" @click=${this.cookieBox.innerHtml = ""}>Please paste your cookies here...</textarea><br>
                         <div class="buttonBox">
                             <a id="pluginLink" target="_blank" href="https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/"><input type="button" id="pluginBtn" value="Get YouTube Cookies"></a>
                             <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>
