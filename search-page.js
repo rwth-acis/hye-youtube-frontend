@@ -178,10 +178,8 @@ export class SearchPage extends LitElement {
                 }
             })
             .then(data => {
-                if (!data) {
-                    this.status.innerHTML = "Error during request!";
+                if (!data)
                     return;
-                }
                 this.results = data;
                 this.requestUpdate();
             })
@@ -192,7 +190,13 @@ export class SearchPage extends LitElement {
     }
 
     requestFailed(response) {
-        response.json().then(obj => this.status.innerHTML = JSON.stringify(obj));
+        response.json().then(obj => {
+            // hacky way to handle 'not logged in' error
+            if (obj["msg"] === "class i5.las2peer.security.AnonymousAgentImpl cannot be cast to class i5.las2peer.api.security.UserAgent (i5.las2peer.security.AnonymousAgentImpl and i5.las2peer.api.security.UserAgent are in unnamed module of loader 'app')")
+                this.status.innerHTML = "Please log in";
+            else
+                this.status.innerHTML = JSON.stringify(obj)
+        });
     }
 
     parseSearchQuery(searchQuery) {

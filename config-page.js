@@ -43,9 +43,6 @@ export class ConfigPage extends LitElement {
                 padding: 0px;
                 list-style-type: none;
             }
-            li {
-                justify-content: center;
-            }
             input[type="button"].delete {
                 background-color: red;
                 color: #FFF;
@@ -59,6 +56,9 @@ export class ConfigPage extends LitElement {
             }
             input[type="button"].disabled:hover {
                 cursor: initial;
+            }
+            img {
+                height: 100%;
             }
             .centerBox {
                 position: inline-block;
@@ -85,7 +85,8 @@ export class ConfigPage extends LitElement {
                 font-size: small;
             }
             .ytConsItem {
-                display: flex;
+                display: flow-root;
+                margin-bottom: 10px;
             }
             .consentData {
                 display: inline-block;
@@ -127,10 +128,12 @@ export class ConfigPage extends LitElement {
             #username {
                 display: inline-block;
             }
-            #avatar {
+            .avatar {
                 border-radius: 50%;
                 height: 40px;
+                width: 40px;
                 vertical-align: middle;
+                display: inline-block;
             }
             #cookieBtn {
                 width: 50%;
@@ -389,6 +392,8 @@ export class ConfigPage extends LitElement {
                     return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
                 let strPart = data.split("userImage=")[1];
                 let avatarId = strPart.substr(0, strPart.length-1);
+                if (avatarId === "")
+                    return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
                 let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
                 this._avatars[userName] = avatarLink;
                 this.requestUpdate();
@@ -571,6 +576,9 @@ export class ConfigPage extends LitElement {
     }
 
     parseCookies(cookieString) {
+        let placeHolderText = "Please paste your cookies here...";
+        if (cookieString.startsWith(placeHolderText))
+            cookieString = cookieString.substr(placeHolderText.length, cookieString.length);
         let cookies = JSON.parse(cookieString);
         let result = [];
         if (typeof cookies !== "object" || typeof cookies.length === "undefined")
@@ -603,7 +611,9 @@ export class ConfigPage extends LitElement {
         let avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
-                <img id="avatar" src="${avatarLink}" />
+                <div class="avatar">
+                    <img src="${avatarLink}" />
+                </div>
                 <p id="username">${userName}</p>
             </div>
             <input id="${permission}" name="deGue" type="radio" @change=${this.setUserPreference} ?checked=${this._deGue === permission}>
@@ -615,7 +625,9 @@ export class ConfigPage extends LitElement {
         let avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
-                <img id="avatar" src="${avatarLink}" style="vertical-align: baseline;"/>
+                <div class="avatar" style="vertical-align: baseline;">
+                    <img src="${avatarLink}" />
+                </div>
                 <div class="consentData">
                     <p id=userName>${userName}</p>
                     <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this._consents[readerId]}>
@@ -632,10 +644,12 @@ export class ConfigPage extends LitElement {
         return (typeof this._consents[userId] !== "undefined" || this._userData["agentid"] === userId)
             ? ``
             : html`
+                <input type="button" name="${userId}" class="grantBtn" @click=${this.grantAccess} value="Grant cookie access">
                 <li class="l2pUser">
-                    <img id="avatar" src="${avatarLink}" />
+                    <div class="avatar">
+                        <img src="${avatarLink}" />
+                    </div>
                     <p id="username">${userName}</p>
-                    <input type="button" name="${userId}" class="grantBtn" @click=${this.grantAccess} value="Grant cookie access">
                 </li>
         `;
     }
@@ -669,6 +683,15 @@ export class ConfigPage extends LitElement {
         let userId = target.name;
         this.addReader(userId);
     }
+    
+    getPluginLink() {
+        // Not chrome -> Assume Firefox
+        if (navigator.userAgent.indexOf("Chrome") === -1)
+            return "https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/";
+        // Chrome
+        return "https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm";
+    }
+    
 
     render() {
         return this._sharedCookies
@@ -720,9 +743,9 @@ export class ConfigPage extends LitElement {
                     <h2>Configurations</h2>
                     <div id="configBox">
                         <i id="cookieStatus">${this._cookieStatus}</i><br>
-                        <textarea id="cookieBox" @click=${this.cookieBox.innerHtml = ""}>Please paste your cookies here...</textarea><br>
+                        <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
                         <div class="buttonBox">
-                            <a id="pluginLink" target="_blank" href="https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/"><input type="button" id="pluginBtn" value="Get YouTube Cookies"></a>
+                            <a id="pluginLink" target="_blank" href="${this.getPluginLink()}"><input type="button" id="pluginBtn" value="Get YouTube Cookies"></a>
                             <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>
                         </div>
                     </div>`
