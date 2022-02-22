@@ -17,6 +17,7 @@ export class ConfigPage extends LitElement {
                 display: block;
                 border: solid 1px gray;
                 padding: 16px;
+                padding-bottom: 50px;
                 width: 800px;
                 font-family: sans-serif;
                 position: absolute;
@@ -46,9 +47,11 @@ export class ConfigPage extends LitElement {
             input[type="button"].delete {
                 background-color: red;
                 color: #FFF;
-                font-weight: bold;
                 border: 2px red solid;
                 max-height: 50px;
+            }
+            input[type="button"].delete:hover {
+                font-weight: bold;
             }
             input[type="button"].disabled {
                 background-color: lightgrey;
@@ -134,6 +137,7 @@ export class ConfigPage extends LitElement {
                 width: 40px;
                 vertical-align: middle;
                 display: inline-block;
+                overflow: hidden;
             }
             #cookieBtn {
                 width: 50%;
@@ -147,6 +151,24 @@ export class ConfigPage extends LitElement {
             }
             #userName {
                 margin: 0px 0px 5px 5px;
+            }
+            #avatar {
+                min-width: 40px;
+                min-height: 40px;
+            }
+            #alpha {
+                vertical-align: middle;
+            }
+            #customRecs {
+                width: 90%;
+                padding: 0px 5%;
+            }
+            #loginBtn {
+                margin-right: 1em;
+            }
+            #customRecStatus {
+                display: inline-block;
+                padding: 10px 0px;
             }
             @media screen and (max-width: 800px) {
                 :host {
@@ -193,7 +215,9 @@ export class ConfigPage extends LitElement {
     constructor() {
         super();
         this.las2peerBaseUri = "http://localhost:8081/";
+        this._recsBaseUri = `${this.las2peerBaseUri}hye-recommendations/`;
         this._proxyBaseUri = `${this.las2peerBaseUri}hye-youtube/`;
+        this._contactserviceUri = `${this.las2peerBaseUri}contactservice/`;
         this._addressbookUri = `${this.las2peerBaseUri}contactservice/addressbook/`;
         this._userData = {};
         this._sharedCookies = false;
@@ -203,23 +227,28 @@ export class ConfigPage extends LitElement {
         this._addressbook = {};
         this._deGue = "";
         this._avatars = {};
+        this._alpha = -1;
+        this.fetchAddressbook();
         this.fetchUserdata();
         this.fetchCookies();
+        this.fetchPreference();
+        this.fetchAlpha();
         this.fetchConsent();
         this.fetchPermissions();
-        this.fetchAddressbook();
-        this.fetchPreference();
         this._cookieStatus = html`Loading cookies <div class="cookie spinning"></div>`;
         this._permissionStatus = html`Loading permissions <div class="cookie spinning"></div>`;
         this._consentStatus = html`Loading consent data <div class="cookie spinning"></div>`;
         this._addressbookStatus = html`Loading addressbook <div class="cookie spinning"></div>`;
         this._newUserStatus = "";
+        this._recStatus = "";
     }
 
     fetchUserdata() {
         fetch(this.las2peerBaseUri + "las2peer/auth/login/", {credentials: "include"}).then(response => {
             if (response.ok) {
-                response.json().then(data => this._userData = data);
+                response.json().then(data => {
+                    this._userData = data;
+                });
             } else {
                 response.text().then(data => console.log("Error:", data));
             }
@@ -235,31 +264,102 @@ export class ConfigPage extends LitElement {
             } else {
                 response.text()
                   .then(data => {
-                    this._cookieStatus = data;
-                    this.requestUpdate();
-                  })
-                  .catch((error) => {
                       this._sharedCookies = false;
-                      this._cookieStatus = "Error while checking for cookies!";
-                      console.error('Error:', error);
-                      this.requestUpdate();
+                      this._cookieStatus = data;
+                      this.cookieStatus.innerHTML = this._cookieStatus;
+                  });
+            }
+        }).then(data => {
+            if (!data)
+                return;
+            if (data === "No cookies found.") {
+                this._cookieStatus = "Currently you have not uploaded any valid YouTube cookies. Please do so, in order to use this service :)";
+                this._cookieBox = true;
+            } else {
+                this._sharedCookies = true;
+                this._cookieStatus = "";
+            }
+            this.requestUpdate();
+        }).catch((error) => {
+            this._sharedCookies = false;
+            console.error('Error:', error);
+            this._cookieStatus = "Error while checking for cookies!";
+            this.cookieStatus.innerHTML = this._cookieStatus;
+        });
+    }
+
+    fetchAddressbook() {
+        fetch(this._addressbookUri, {credentials: "include"}).then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                response.json().then(data => {
+                    this._addressbookStatus = JSON.stringify(data);
+                    this.addressbookStatus.innerHTML = this._addressbookStatus;
                 });
             }
-            }).then(data => {
-                if (!data)
-                    return;
-                if (data === "No cookies found.") {
-                    this._cookieStatus = "Currently you have not uploaded any valid YouTube cookies. Please do so, in order to use this service :)";
-                    this._cookieBox = true;
-                } else {
-                    this._sharedCookies = true;
-                    this._cookieStatus = "";
-                }
-            }).catch((error) => {
-                this._sharedCookies = false;
-                this._cookieStatus = "Error while checking for cookies!";
-                console.error('Error:', error);
-                this.requestUpdate();
+        }).then(data => {
+            if (!data)
+                return;
+            if (Object.keys(data).length === 0) {
+                this._addressbookStatus = "There are no further users in the network.";
+            } else {
+                this._addressbook = data;
+                this._addressbookStatus = "";
+            }
+            this.addressbookStatus.innerHTML = this._addressbookStatus;
+            return this._addressbook;
+        }).catch((error) => {
+            if (error.name == "TypeError")
+            	return;
+            console.error('Error:', error);
+            this._addressbookStatus = "Error while retrieving addressbook!";
+            this.addressbookStatus.innerHTML = this._addressbookStatus;
+        });
+    }
+
+    fetchPreference() {
+        fetch(this._proxyBaseUri + "preference", {credentials: "include"}).then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+        }).then(data => {
+            this._deGue = data.replaceAll('"', '');
+            return this._deGue;
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    fetchPermissions() {
+        fetch(this._proxyBaseUri + "reader/", {credentials: "include"}).then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                response.json().then(data => {
+                    this._permissionStatus = JSON.stringify(data);
+                    this.permissionStatus.innerHTML = this._permissionStatus;
+                });
+            }
+        }).then(data => {
+            if (!data)
+                return;
+            if (data.length === 0) {
+                this._permissionStatus = "Currently nobody has granted you non-anonymous access to their cookies.";
+            } else {
+                this._permissions = data;
+                this._permissionStatus = "";
+            }
+            this.permissionStatus.innerHTML = this._permissionStatus;
+            return this._permissions;
+        })
+        .catch((error) => {
+            if (error.name == "TypeError")
+            	return;
+            console.error('Error:', error);
+            this._permissionStatus = "Error while retrieving permissions!";
+            this.permissionStatus.innerHTML = this._permissionStatus;
         });
     }
 
@@ -270,112 +370,65 @@ export class ConfigPage extends LitElement {
             } else {
                 response.json().then(data => {
                     this._consentStatus = JSON.stringify(data);
-                    this.requestUpdate();
+                    this.consentStatus.innerHTML = this._consentStatus;
                 });
             }
-            }).then(data => {
-                if (!data)
-                    return
-                if (data.length === 0) {
-                    this._consentStatus = "Currently you have not granted anybody access to your cookies.";
-                } else {
-                    this._consents = this.parseConsentData(data);
-                    this._consentStatus = "";
-                }
-                this.requestUpdate();
-            }).catch((error) => {
-                console.error('Error:', error);
-                this._consentStatus = "Error while retrieving consent information!";
-                this.requestUpdate();
-            });
+        }).then(data => {
+            if (!data)
+                return
+            if (data.length === 0) {
+                this._consentStatus = "Currently you have not granted anybody access to your cookies.";
+            } else {
+                this._consents = this.parseConsentData(data);
+                this._consentStatus = "";
+            }
+            this.consentStatus.innerHTML = this._consentStatus;
+            return this._consents;
+        }).catch((error) => {
+            if (error.name == "TypeError")
+            	return;
+            console.error('Error:', error);
+            this._consentStatus = "Error while retrieving consent information!";
+            this.consentStatus.innerHTML = this._consentStatus;
+        });
     }
 
-    fetchPermissions() {
-        fetch(this._proxyBaseUri + "reader/", {credentials: "include"}).then(response => {
+    fetchAlpha() {
+        // If alpha has already been updated, no need to send request again
+        if (this._alpha != -1)
+            return this._alpha;
+        fetch(this._recsBaseUri + "alpha", {credentials: "include"}).then(response => {
             if (response.ok) {
-                return response.json();
-            } else {
-                response.json().then(data => {
-                    this._permissionStatus = JSON.stringify(data);
-                    this.requestUpdate();
-                });
+                return response.text();
             }
-            }).then(data => {
-                if (!data)
-                    return;
-                if (data.length === 0) {
-                    this._permissionStatus = "Currently nobody has granted you non-anonymous access to their cookies.";
-                } else {
-                    this._permissions = data;
-                    this._permissionStatus = "";
-                }
-                this.requestUpdate();
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                this._permissionStatus = "Error while retrieving permissions!";
-                this.requestUpdate();
-            });
-    }
-
-    fetchAddressbook() {
-        fetch(this._addressbookUri, {credentials: "include"}).then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                response.json().then(data => {
-                    this._addressbookStatus = JSON.stringify(data);
-                    this.requestUpdate();
-                });
-            }
-            }).then(data => {
-                if (!data)
-                    return;
-                if (Object.keys(data).length === 0) {
-                    this._addressbookStatus = "There are no further users in the network.";
-                } else {
-                    this._addressbook = data;
-                    this._addressbookStatus = "";
-                }
-                this.requestUpdate();
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                this._addressbookStatus = "Error while retrieving addressbook!";
-                this.requestUpdate();
-            });
+        }).then(data => {
+            if (!data)
+                return;
+            this._alpha = data * 100;
+            return this._alpha;
+        }).catch((error) => {
+            console.error('Error:', error);
+            return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+        });
     }
 
     fetchUsername(userId) {
         if (typeof this._addressbook[userId] !== "undefined")
             return this._addressbook[userId];
-        fetch(`${this._addressbookUri}name/${userId}`, {credentials: "include"}).then(response => {
+        fetch(`${this._contactserviceUri}name/${userId}`, {credentials: "include"}).then(response => {
             if (response.ok) {
                 return response.text();
             } else {
                 return userId;
             }
-            }).then(data => {
-                this._addressbook[userId] = data;
-                return data
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                return userId;
-            });
-    }
-
-    fetchPreference() {
-        fetch(this._proxyBaseUri + "preference", {credentials: "include"}).then(response => {
-            if (response.ok) {
-                return response.text();
-            }
-            }).then(data => {
-                this._deGue = data.replaceAll('"', '');
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
+        }).then(data => {
+            this._addressbook[userId] = data;
+            return data
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            return userId;
+        });
     }
 
     fetchAvatar(userName) {
@@ -387,21 +440,21 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 return response.text();
             }
-            }).then(data => {
-                if (!data)
-                    return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
-                let strPart = data.split("userImage=")[1];
-                let avatarId = strPart.substr(0, strPart.length-1);
-                if (avatarId === "")
-                    return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
-                let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
-                this._avatars[userName] = avatarLink;
-                this.requestUpdate();
-                return avatarLink;
-            }).catch((error) => {
-                console.error('Error:', error);
+        }).then(data => {
+            if (!data)
                 return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
-            });
+            let strPart = data.split("userImage=")[1];
+            let avatarId = strPart.substr(0, strPart.length-1);
+            if (avatarId === "")
+                return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+            let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
+            this._avatars[userName] = avatarLink;
+            this.requestUpdate();
+            return avatarLink;
+        }).catch((error) => {
+            console.error('Error:', error);
+            return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+        });
     }
 
     uploadCookies() {
@@ -419,10 +472,10 @@ export class ConfigPage extends LitElement {
             } else {
                 response.text().then(data => this.cookieStatus.innerHTML = data);
             }
-            }).catch((error) => {
-                this.cookieStatus.innerHTML = "Uploading cookies failed!";
-                console.error('Error:', error);
-            });
+        }).catch((error) => {
+            this.cookieStatus.innerHTML = "Uploading cookies failed!";
+            console.error('Error:', error);
+        });
     }
 
     deleteCookies() {
@@ -440,10 +493,10 @@ export class ConfigPage extends LitElement {
             } else {
                 response.json().then(data => this.newUserStatus.innerHTML = data);
             }
-            }).catch((error) => {
-                this.newUserStatus.innerHTML = "Error deleting cookies!";
-                console.error('Error:', error);
-            });
+        }).catch((error) => {
+            this.newUserStatus.innerHTML = "Error deleting cookies!";
+            console.error('Error:', error);
+        });
     }
 
     addReader(userId) {
@@ -455,17 +508,17 @@ export class ConfigPage extends LitElement {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: `['${userId}']`
+            body: `["${userId}"]`
         }).then(response => {
             if (response.ok) {
                 this.addConsent(userId, true);
             } else {
                 response.json().then(data => this.newUserStatus.innerHTML = data);
             }
-            }).catch((error) => {
-                console.error('Error:', error);
-                this.newUserStatus.innerHTML = "Error while trying to add new user!";
-            });
+        }).catch((error) => {
+            console.error('Error:', error);
+            this.newUserStatus.innerHTML = "Error while trying to add new user!";
+        });
     }
 
     addConsent(userId, anon) {
@@ -479,7 +532,11 @@ export class ConfigPage extends LitElement {
             body: `{"reader": "${userId}", "requestUri": "${this._proxyBaseUri}", "anonymous": ${anon}}`
         }).then(response => {
             if (response.ok) {
-                window.location.reload(true);
+                if (anon)
+                    window.location.reload(true);
+                else {
+                    this.newUserStatus.innerHTML = "Consent Successfully updated.";
+                }
             } else {
                 response.text().then(data => this.newUserStatus.innerHTML = data);
             }
@@ -546,7 +603,7 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 response.text().then(data => {
                     this.permissionStatus.innerHTML = data;
-                    window.location.reload(true);
+                    this.customRecs.setAttribute("hidden", '');
                 });
             } else {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
@@ -564,7 +621,7 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 response.text().then(data => {
                     this.permissionStatus.innerHTML = data;
-                    window.location.reload(true);
+                    this.customRecs.removeAttribute("hidden");
                 });
             } else {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
@@ -575,11 +632,51 @@ export class ConfigPage extends LitElement {
         });
     }
 
+    updateAlpha() {
+        fetch(this._recsBaseUri + "alpha/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain"
+            },
+            credentials: "include",
+            body: this.alpha.value / 100
+        }).catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    synchronizeData() {
+        fetch(this._recsBaseUri, {
+            method: "POST",
+            credentials: "include"
+        }).then((response) => {
+            if (response.ok) {
+                this._recStatus.innerHTML = "Started to synchronize data. This is going to take a couple of minutes... " +
+                    "You can continue to use the service. Once the update is done, this area of the config page is going to be replaced " +
+                    "with settings where you can influence your recommendations.";
+                this.customRecStatus.innerHTML = this._recStatus;
+            }
+            else
+                response.text().then(data => {
+                    this._recStatus = data;
+                    this.customRecStatus.innerHTML = this._recStatus;
+                });
+        }).catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
     parseCookies(cookieString) {
         let placeHolderText = "Please paste your cookies here...";
         if (cookieString.startsWith(placeHolderText))
             cookieString = cookieString.substr(placeHolderText.length, cookieString.length);
-        let cookies = JSON.parse(cookieString);
+        let cookies = "";
+        try {
+            cookies = JSON.parse(cookieString);
+        } catch (e) {
+            this.cookieStatus.innerHTML = "Invalid cookie data!";
+            return {};
+        }
         let result = [];
         if (typeof cookies !== "object" || typeof cookies.length === "undefined")
             return;
@@ -606,51 +703,50 @@ export class ConfigPage extends LitElement {
         return result;
     }
 
-    parsePermission(permission) {
-        let userName = this.fetchUsername(permission);
-        let avatarLink = this.fetchAvatar(userName);
+    getUserInfo(userId) {
+        const userName = this.fetchUsername(userId);
+        const avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
                 <div class="avatar">
-                    <img src="${avatarLink}" />
+                    <img id="avatar" src="${avatarLink}" />
                 </div>
                 <p id="username">${userName}</p>
             </div>
-            <input id="${permission}" name="deGue" type="radio" @change=${this.setUserPreference} ?checked=${this._deGue === permission}>
         `;
     }
 
-    parseConsent(readerId) {
-        let userName = this.fetchUsername(readerId);
-        let avatarLink = this.fetchAvatar(userName);
+    permissionEntry(userId) {
+        return html`
+            <input id="${userId}" name="deGue" type="radio" @change=${this.setUserPreference} ?checked=${this._deGue === userId}>
+            ${this.getUserInfo(userId)}
+        `;
+    }
+
+    consentEntry(userId) {
+        const userName = this.fetchUsername(userId);
+        const avatarLink = this.fetchAvatar(userName);
         return html`
             <div class="userInfo">
                 <div class="avatar" style="vertical-align: baseline;">
-                    <img src="${avatarLink}" />
+                    <img id="avatar" src="${avatarLink}" />
                 </div>
                 <div class="consentData">
                     <p id=userName>${userName}</p>
-                    <input type="checkbox" id="${readerId + "_deGue"}" name="${readerId}" @change=${this.setConsent} ?checked=${!this._consents[readerId]}>
-                    <label class="small" for="${readerId}">Permit non-anonymous requests</label>
+                    <input type="checkbox" id="${userId + "_deGue"}" name="${userId}" @change=${this.setConsent} ?checked=${!this._consents[userId]}>
+                    <label class="small" for="${userId}">Permit non-anonymous requests</label>
                 </div>
             </div>
-            <input type="button" id="${readerId}" @click=${this.deleteConsent} class="delete grantBtn" value="Revoke user consent">
+            <input type="button" id="${userId}" @click=${this.deleteConsent} class="delete grantBtn" value="Revoke user consent">
         `;
     }
 
-    parseUserId(userId) {
-        let userName = this.fetchUsername(userId);
-        let avatarLink = this.fetchAvatar(userName);
+    addressbookEntry(userId) {
         return (typeof this._consents[userId] !== "undefined" || this._userData["agentid"] === userId)
             ? ``
             : html`
                 <input type="button" name="${userId}" class="grantBtn" @click=${this.grantAccess} value="Grant cookie access">
-                <li class="l2pUser">
-                    <div class="avatar">
-                        <img src="${avatarLink}" />
-                    </div>
-                    <p id="username">${userName}</p>
-                </li>
+                ${this.getUserInfo(userId)}
         `;
     }
 
@@ -683,15 +779,17 @@ export class ConfigPage extends LitElement {
         let userId = target.name;
         this.addReader(userId);
     }
-    
+
     getPluginLink() {
-        // Not chrome -> Assume Firefox
-        if (navigator.userAgent.indexOf("Chrome") === -1)
-            return "https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/";
-        // Chrome
-        return "https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm";
+        // Edge
+        if (window.navigator.userAgent.indexOf("Edge") > -1)
+            return "https://microsoftedge.microsoft.com/addons/detail/cookie-editor/ajfboaconbpkglpfanbmlfgojgndmhmc";
+        // Chrome (All chromium based browsers should also work)
+        if (navigator.userAgent.indexOf("Chrome") > -1)
+            return "https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm";
+        // Everything else must be Firefox
+        return "https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/";
     }
-    
 
     render() {
         return this._sharedCookies
@@ -704,11 +802,33 @@ export class ConfigPage extends LitElement {
                         <input id="mixed" type="radio" name="deGue" @change=${this.resetPreference} ?checked=${this._deGue === ""}>
                         <label for="mixed">Mixed recommendations</label>
                     </li>
+                    ${this._alpha < 0 ?
+                        html`
+                            <div id="customRecs" ?hidden=${this._deGue != ""}>
+                                <p><b>Custom recommendations</b></p>
+                                <p>Please use the buttons below to sign into YouTube and then share upload your YouTube history to receive custom recommendations</p>
+                                <div class="buttonBox">
+                                    <a id="ytLink" target="_blank" href="${this._recsBaseUri + "login"}"><input type="button" id="loginBtn" value="YouTube login"></a>
+                                    <input type="button" id="synchBtn" value="Upload watch data" @click=${this.synchronizeData}>
+                                </div>
+                                <i id="customRecStatus">${this._recStatus}</i>
+                            </div>`
+                    :
+                        html`
+                            <div id="customRecs" ?hidden=${this._deGue != ""}>
+                                <p><b>Custom recommendations</b></p>
+                                <p>Set how different the recommendation mix should be from your normal recommendations</p>
+                                <label for="alpha">Similar</label>
+                                <input id="alpha" type="range" min="0" max="100" value="${this._alpha}" class="slider" @change=${this.updateAlpha}>
+                                <label for="mixed">Different</label><br />
+                                <i id="customRecStatus">${this._recStatus}</i>
+                            </div>`
+                    }
                     ${this._permissions.length > 0 ?
                         html`<b>Get exclusive recommendations for user</b>` : ``}
                     ${this._permissions.map((perm) => html`
                         <li class="ytPermItem">
-                            ${this.parsePermission(perm)}
+                            ${this.permissionEntry(perm)}
                         </li>`
                     )}
                 </ul>
@@ -720,7 +840,7 @@ export class ConfigPage extends LitElement {
                 <ul>
                     ${Object.keys(this._consents).map((readerId) => html`
                         <li class="ytConsItem">
-                            ${this.parseConsent(readerId)}
+                            ${this.consentEntry(readerId)}
                         </li>`
                     )}
                 </ul>
@@ -731,7 +851,11 @@ export class ConfigPage extends LitElement {
                 <h3>Addressbook</h3>
                 <!---<input id="newUserId" type="text" placeholder="User ID"><input id="newUserBtn" type="button" value="Add new user" @click=${this.addReader}>--->
                 <ul>
-                    ${Object.keys(this._addressbook).map((userId) => this.parseUserId(userId))}
+                    ${Object.keys(this._addressbook).map((userId) => html`
+                        <li class="l2pUser">
+                            ${this.addressbookEntry(userId)}
+                        </li>`
+                    )}
                 </ul>
                 <i id="newUserStatus">${this._newUserStatus}</i>
                 <i id="addressbookStatus">${this._addressbookStatus}</i>
@@ -743,7 +867,7 @@ export class ConfigPage extends LitElement {
                     <h2>Configurations</h2>
                     <div id="configBox">
                         <i id="cookieStatus">${this._cookieStatus}</i><br>
-                        <textarea id="cookieBox">Please paste your cookies here...</textarea><br>
+                        <textarea placeholder="Please paste your cookies here..." id="cookieBox"></textarea><br>
                         <div class="buttonBox">
                             <a id="pluginLink" target="_blank" href="${this.getPluginLink()}"><input type="button" id="pluginBtn" value="Get YouTube Cookies"></a>
                             <input type="button" id="cookieBtn" value="Upload cookies" @click=${this.uploadCookies}>
@@ -781,6 +905,18 @@ export class ConfigPage extends LitElement {
 
     get addressbookStatus() {
         return this.renderRoot.querySelector("#addressbookStatus");
+    }
+
+    get customRecStatus() {
+        return this.renderRoot.querySelector("#customRecStatus");
+    }
+
+    get alpha() {
+        return this.renderRoot.querySelector("#alpha");
+    }
+
+    get customRecs() {
+        return this.renderRoot.querySelector("#customRecs");
     }
 }
 

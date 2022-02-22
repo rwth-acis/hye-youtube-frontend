@@ -42,7 +42,7 @@ export class VideoPage extends LitElement {
                 padding: 7px 0px;
             }
             .videoInfo {
-                max-width: fit-content;
+                max-width: 300px;
                 width: 100%;
                 float: right;
             }
@@ -93,9 +93,13 @@ export class VideoPage extends LitElement {
             #searchBtn:hover {
                 cursor: pointer;
             }
+            #thumbnailLink {
+                width: 300px;
+            }
             #thumbnail {
                 float: left;
                 margin-right: 5px;
+                width: 95%;
             }
             #length {
                 position: relative;
@@ -107,9 +111,28 @@ export class VideoPage extends LitElement {
                 color: white;
                 font-size: small;
                 text-align: center;
-                margin-top: 60px;
-                margin-left: -60px;
-                margin-right: 10px;
+                vertical-align: bottom;
+                margin-top: -30px;
+                margin-right: 15px;
+            }
+            #obsBox {
+                width: 360px;
+                justify-content: center;
+                display: grid;
+                position: absolute;
+                font-size: x-large;
+            }
+            #noHelpful {
+                width: 92px;
+                height: 92px;
+                font-size: xxx-large;
+            }
+            #submitObs {
+                width: 100px;
+                height: 100px;
+                border-radius: 0px;
+                background-color: cornflowerblue;
+                font-size: x-large;
             }
             @media screen and (max-width: 800px) {
                 .recommendation {
@@ -126,6 +149,12 @@ export class VideoPage extends LitElement {
                     max-width: fit-content;
                     width: 100%;
                 }
+                #length {
+                    margin: -35px 20px 0px 0px;
+                }
+                #thumbnailLink {
+                    display: inline-block;
+                }
                 #thumbnail {
                     float: none;
                 }
@@ -136,6 +165,11 @@ export class VideoPage extends LitElement {
                 #searchBar {
                     width: 75%;
                     height: 30px;
+                }
+                #obsBox {
+                    width: 360px;
+                    position: relative;
+                    font-size: x-large;
                 }
             }
         `;
@@ -198,13 +232,38 @@ export class VideoPage extends LitElement {
             });
     }
 
+    sendObservation() {
+        fetch(`${this.proxyBaseUri.replace("youtube", "recommendations")}observation`, {credentials: "include",
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: `{"oneTimeCode": ${this.submitObs.name}, "noVideos": ${this.recommendations.length - 1}, "noHelpful": ${this.noHelpful.value}}`})
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    this.requestFailed(response);
+                    return;
+                }
+            })
+            .then(data => {
+                if (!data)
+                    return;
+                this.status.innerHTML = data["msg"];
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                this.status.innerHTML = "Error during request!";
+            });
+    }
+
     requestFailed(response) {
         response.json().then(obj => {
-            // hacky way to handle 'not logged in' error
+            // hacky way to handle errors
             if (obj["msg"] === "class i5.las2peer.security.AnonymousAgentImpl cannot be cast to class i5.las2peer.api.security.UserAgent (i5.las2peer.security.AnonymousAgentImpl and i5.las2peer.api.security.UserAgent are in unnamed module of loader 'app')")
-                this.status.innerHTML = "Please log in";
+                this.status.innerHTML = "Please log in and refresh the page (F5) to use the service";
+            else if (typeof obj["403"] !== "undefined")
+                this.status.innerHTML = "Please upload a valid set of YouTube cookies via the settings page to use the service";
             else
-                this.status.innerHTML = JSON.stringify(obj)
+                this.status.innerHTML = Object.values(obj);
         });
     }
 
@@ -235,6 +294,14 @@ export class VideoPage extends LitElement {
     }
 
     parseRecommendation(rec) {
+    	if (typeof rec["oneTimeCode"] !== "undefined")
+    	    return html`
+    	        <div class="recommendation">
+    	            <div id="obsBox">
+    	                <input type="number" id="noHelpful" min="0" max="${this.recommendations.length}"><br />
+    	                <input type="button" id="submitObs" name="${rec["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
+    	            </div>
+    	        </div>`;
         if (typeof rec["title"] === "undefined" ||
           typeof rec["channelName"] === "undefined" ||
           typeof rec["link"] === "undefined" ||
@@ -325,6 +392,14 @@ export class VideoPage extends LitElement {
 
     get loadingAnimationContainer() {
         return this.renderRoot.querySelector("#loadingAnimationContainer");
+    }
+
+    get noHelpful() {
+        return this.renderRoot.querySelector("#noHelpful");
+    }
+
+    get submitObs() {
+        return this.renderRoot.querySelector("#submitObs");
     }
 }
 

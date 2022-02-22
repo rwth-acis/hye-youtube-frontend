@@ -105,6 +105,25 @@ export class SearchPage extends LitElement {
                 margin-left: -60px;
                 margin-right: 10px;
             }
+            #obsBox {
+                width: 360px;
+                justify-content: center;
+                display: grid;
+                position: absolute;
+                font-size: x-large;
+            }
+            #noHelpful {
+                width: 92px;
+                height: 92px;
+                font-size: xxx-large;
+            }
+            #submitObs {
+                width: 100px;
+                height: 100px;
+                border-radius: 0px;
+                background-color: cornflowerblue;
+                font-size: x-large;
+            }
             @media screen and (max-width: 800px) {
                 p {
                     padding: 0px;
@@ -137,6 +156,12 @@ export class SearchPage extends LitElement {
                 #searchBar {
                     width: 75%;
                     height: 30px;
+                }
+                #obsBox {
+                    width: 360px;
+                    left: 130px;
+                    position: relative;
+                    font-size: x-large;
                 }
             }
         `;
@@ -189,14 +214,43 @@ export class SearchPage extends LitElement {
             });
     }
 
+    sendObservation() {
+        fetch(`${this.proxyBaseUri.replace("youtube", "recommendations")}observation`, {credentials: "include",
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: `{"oneTimeCode": "${this.submitObs.name}", "noVideos": ${this.results.length - 1}, "noHelpful": ${this.noHelpful.value}}`})
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    this.requestFailed(response);
+                    return;
+                }
+            })
+            .then(data => {
+                if (!data)
+                    return;
+                this.status.innerHTML = data["msg"];
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                this.status.innerHTML = "Error during request!";
+            });
+    }
+
     requestFailed(response) {
         response.json().then(obj => {
-            // hacky way to handle 'not logged in' error
+            // hacky way to handle errors
             if (obj["msg"] === "class i5.las2peer.security.AnonymousAgentImpl cannot be cast to class i5.las2peer.api.security.UserAgent (i5.las2peer.security.AnonymousAgentImpl and i5.las2peer.api.security.UserAgent are in unnamed module of loader 'app')")
-                this.status.innerHTML = "Please log in";
+                this.status.innerHTML = "Please log in and refresh the page (F5) to use the service";
+            else if (typeof obj["403"] !== "undefined")
+                this.status.innerHTML = "Please upload a valid set of YouTube cookies via the settings page to use the service";
             else
-                this.status.innerHTML = JSON.stringify(obj)
+                this.status.innerHTML = Object.values(obj);
         });
+    }
+
+    get noHelpful() {
+        return this.renderRoot.querySelector("#noHelpful");
     }
 
     parseSearchQuery(searchQuery) {
@@ -230,6 +284,14 @@ export class SearchPage extends LitElement {
     }
 
     parseResult(res) {
+        if (typeof res["oneTimeCode"] !== "undefined")
+    	    return html`
+    	        <div class="recommendation">
+    	            <div id="obsBox">
+    	                <input type="number" id="noHelpful" min="0" max="${this.results.length}"><br />
+    	                <input type="button" id="submitObs" name="${res["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
+    	            </div>
+    	        </div>`;
         if (typeof res["title"] === "undefined" ||
           typeof res["channelName"] === "undefined" ||
           typeof res["link"] === "undefined" ||
@@ -307,6 +369,14 @@ export class SearchPage extends LitElement {
 
     get loadingAnimationContainer() {
         return this.renderRoot.querySelector("#loadingAnimationContainer");
+    }
+
+    get noHelpful() {
+        return this.renderRoot.querySelector("#noHelpful");
+    }
+
+    get submitObs() {
+        return this.renderRoot.querySelector("#submitObs");
     }
 }
 
