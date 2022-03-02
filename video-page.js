@@ -37,11 +37,11 @@ export class VideoPage extends LitElement {
                 position: absolute;
             }
             .recommendation {
-                font-family: sans-serif;
                 display: flex;
                 padding: 7px 0px;
             }
             .videoInfo {
+                font-family: sans-serif;
                 max-width: 300px;
                 width: 100%;
                 float: right;
@@ -66,6 +66,7 @@ export class VideoPage extends LitElement {
                 font-family: sans-serif;
             }
             #video {
+                font-family: sans-serif;
                 width: 100%;
                 max-width: fit-content;
                 float: left;
@@ -115,24 +116,35 @@ export class VideoPage extends LitElement {
                 margin-top: -30px;
                 margin-right: 15px;
             }
+            #obsStatus {
+                color: grey;
+                font-size: medium;
+                padding: 1em 0px;
+            }
             #obsBox {
-                width: 360px;
+                width: 300px;
                 justify-content: center;
                 display: grid;
                 position: absolute;
                 font-size: x-large;
             }
             #noHelpful {
-                width: 92px;
-                height: 92px;
+                width: 275px;
+                height: 150px;
                 font-size: xxx-large;
             }
             #submitObs {
-                width: 100px;
-                height: 100px;
+                width: 285px;
+                height: 50px;
                 border-radius: 0px;
                 background-color: cornflowerblue;
                 font-size: x-large;
+            }
+            #videoDetails {
+                color: grey;
+            }
+            #description {
+                padding: 10px;
             }
             @media screen and (max-width: 800px) {
                 .recommendation {
@@ -199,14 +211,16 @@ export class VideoPage extends LitElement {
 
     constructor() {
         super();
-        this.proxyBaseUri = "http://localhost:8081/hye-youtube/";
+        this.las2peerBaseUri = "http://localhost:8081/";
+        this.proxyBaseUri = this.las2peerBaseUri + "hye-youtube/";
+        this.recsBaseUri = this.las2peerBaseUri + "hye-recommendations/";
         this.videoId = this.parseVideoId(window.location.search);
         this.videoTitle = "";
         this.videoUploadDate = "";
-        this.videoViews = "";
-        this.videoUpvotes = "";
+        this.videoDescription = "";
         this.recommendations = [];
         this.fetchRecommendations();
+        this.fetchVideoInformation();
     }
 
     fetchRecommendations() {
@@ -232,6 +246,31 @@ export class VideoPage extends LitElement {
             });
     }
 
+    fetchVideoInformation() {
+        fetch(`${this.recsBaseUri}video?id=${this.videoId}`, {credentials: "include"})
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    this.requestFailed(response);
+                    return;
+                }
+            })
+            .then(data => {
+                if (!data)
+                    return;
+                this.videoTitle = data["title"];
+                document.title = this.videoTitle;
+                this.videoUploadDate = data["uploadDate"];
+                this.videoDescription = data["description"];
+                this.requestUpdate();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                this.status.innerHTML = "Error during request!";
+            });
+    }
+
     sendObservation() {
         fetch(`${this.proxyBaseUri.replace("youtube", "recommendations")}observation`, {credentials: "include",
           method: "POST", headers: {"Content-Type": "application/json"},
@@ -247,11 +286,13 @@ export class VideoPage extends LitElement {
             .then(data => {
                 if (!data)
                     return;
-                this.status.innerHTML = data["msg"];
+                this.obsStatus.innerHTML = data["msg"];
+                this.noHelpful.setAttribute("disabled", true);
+                this.submitObs.setAttribute("disabled", true);
             })
             .catch((error) => {
                 console.error('Error:', error);
-                this.status.innerHTML = "Error during request!";
+                this.obsStatus.innerHTML = "Error during request!";
             });
     }
 
@@ -298,8 +339,11 @@ export class VideoPage extends LitElement {
     	    return html`
     	        <div class="recommendation">
     	            <div id="obsBox">
-    	                <input type="number" id="noHelpful" min="0" max="${this.recommendations.length}"><br />
-    	                <input type="button" id="submitObs" name="${rec["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
+    	                <input type="number" id="noHelpful" min="0" max="${this.recommendations.length-1}">
+                        <div class="videoInfo">
+                            <p id="obsStatus">Please enter the number of interesting videos displayed on the page</p>
+        	                <input type="button" id="submitObs" name="${rec["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
+                        </div>
     	            </div>
     	        </div>`;
         if (typeof rec["title"] === "undefined" ||
@@ -365,7 +409,8 @@ export class VideoPage extends LitElement {
                 <iframe width="${videoWidth}" height="${videoHeight}" src="https://www.youtube.com/embed/${this.videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 <h2 id="videoTitle">${this.videoTitle}</h2>
                 <div id="detailContainer">
-                    <p id="videoDetails">${this.videoViews} | ${this.videoUploadDate}</p><p id="upvotes"><i class="far fa-thumbs-up"></i>${this.videoUpvotes}</p>
+                    <p id="videoDetails">${this.videoUploadDate}</p>
+                    <p id="description">${this.videoDescription}</p>
                 </div>
             `;
         }
@@ -396,6 +441,14 @@ export class VideoPage extends LitElement {
 
     get noHelpful() {
         return this.renderRoot.querySelector("#noHelpful");
+    }
+
+    get obsStatus() {
+        return this.renderRoot.querySelector("#obsStatus");
+    }
+
+    get obsBox() {
+        return this.renderRoot.querySelector("#obsBox");
     }
 
     get submitObs() {

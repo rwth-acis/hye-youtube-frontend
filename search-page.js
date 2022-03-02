@@ -105,6 +105,11 @@ export class SearchPage extends LitElement {
                 margin-left: -60px;
                 margin-right: 10px;
             }
+            #obsStatus {
+                color: grey;
+                font-size: medium;
+                padding: 1em 0px;
+            }
             #obsBox {
                 width: 360px;
                 justify-content: center;
@@ -113,13 +118,13 @@ export class SearchPage extends LitElement {
                 font-size: x-large;
             }
             #noHelpful {
-                width: 92px;
-                height: 92px;
+                width: 350px;
+                height: 200px;
                 font-size: xxx-large;
             }
             #submitObs {
-                width: 100px;
-                height: 100px;
+                width: 360px;
+                height: 50px;
                 border-radius: 0px;
                 background-color: cornflowerblue;
                 font-size: x-large;
@@ -159,7 +164,6 @@ export class SearchPage extends LitElement {
                 }
                 #obsBox {
                     width: 360px;
-                    left: 130px;
                     position: relative;
                     font-size: x-large;
                 }
@@ -230,10 +234,13 @@ export class SearchPage extends LitElement {
                 if (!data)
                     return;
                 this.status.innerHTML = data["msg"];
+            this.obsStatus.innerHTML = data["msg"];
+            this.noHelpful.setAttribute("disabled", true);
+            this.submitObs.setAttribute("disabled", true);
             })
             .catch((error) => {
                 console.error('Error:', error);
-                this.status.innerHTML = "Error during request!";
+                this.obsStatus.innerHTML = "Error during request!";
             });
     }
 
@@ -257,6 +264,7 @@ export class SearchPage extends LitElement {
         try {
             return searchQuery.split("search_query=")[1].split("&")[0];
         } catch (e) {
+            console.log(e);
             return "Search YouTube";
         }
     }
@@ -288,7 +296,8 @@ export class SearchPage extends LitElement {
     	    return html`
     	        <div class="recommendation">
     	            <div id="obsBox">
-    	                <input type="number" id="noHelpful" min="0" max="${this.results.length}"><br />
+    	                <input type="number" id="noHelpful" min="0" max="${this.results.length-1}">
+                        <p id="obsStatus">Please enter the number of interesting videos displayed on the page</p>
     	                <input type="button" id="submitObs" name="${res["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
     	            </div>
     	        </div>`;
@@ -373,6 +382,14 @@ export class SearchPage extends LitElement {
 
     get noHelpful() {
         return this.renderRoot.querySelector("#noHelpful");
+    }
+
+    get obsStatus() {
+        return this.renderRoot.querySelector("#obsStatus");
+    }
+
+    get obsBox() {
+        return this.renderRoot.querySelector("#obsBox");
     }
 
     get submitObs() {

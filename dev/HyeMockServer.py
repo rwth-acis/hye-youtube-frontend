@@ -53,15 +53,15 @@ def get_proxy(path):
     if not loggedIn:
         return not_authorized()
     path[-1] = path[-1].split('?')[0]
-    if len(path) < 1 or len(path[0]) == 0 or path[0] == 'watch' or path[0] == 'search':
+    if len(path) < 1 or len(path[0]) == 0 or path[0] == 'watch' or path[0] == 'results':
         file = open('./data/videos.json', 'r')
         data = file.read()
         file.close()
         return build_response(msg = data, content_type = JSON)
     if path[0] == 'cookies':
-        if cookies:
-            return build_response(msg = 'Cookies are valid.')
-        return build_response(msg = 'No cookies found.')
+        # if cookies:
+            # return build_response(msg = 'Cookies are valid.')
+        return build_response(status = 500, msg = "Unspecified server error.")# build_response(msg = 'No cookies found.')
     if path[0] == 'reader':
         return build_response(msg = json.dumps(reader), content_type = JSON)
     if path[0] == 'consent':
@@ -156,6 +156,8 @@ def get_recs(path):
             return build_response(msg = str(alpha))
         else:
             return not_found()
+    if path[0].split('?')[0] == 'video':
+        return build_response(msg = json.dumps({"title": "Video Title", "uploadDate": "22.01.1996", "description": "Happy Birthday!"}), content_type = JSON)
     return not_found()
 
 def post_recs(path, body):
@@ -169,6 +171,8 @@ def post_recs(path, body):
     if path[0] == 'alpha':
         alpha = body
         return build_response()
+    if path[0] == 'observation':
+        return build_response(msg = json.dumps({"status": "200", "msg": "Thanks!"}))
     return not_found()
 
 def delete_recs(path, body):

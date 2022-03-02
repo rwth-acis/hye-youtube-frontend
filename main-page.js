@@ -107,22 +107,27 @@ export class MainPage extends LitElement {
                 margin-top: -40px;
                 margin-bottom: 20px;
             }
+            #obsStatus {
+                color: grey;
+                font-size: medium;
+                padding: 1em 0px;
+            }
             #obsBox {
                 width: 360px;
-                margin-top: -230px;
+                margin-top: -270px;
                 justify-content: center;
                 display: grid;
                 position: absolute;
                 font-size: x-large;
             }
             #noHelpful {
-                width: 92px;
-                height: 92px;
+                width: 350px;
+                height: 200px;
                 font-size: xxx-large;
             }
             #submitObs {
-                width: 100px;
-                height: 100px;
+                width: 360px;
+                height: 50px;
                 border-radius: 0px;
                 background-color: cornflowerblue;
                 font-size: x-large;
@@ -158,6 +163,9 @@ export class MainPage extends LitElement {
                 #searchBar {
                     width: 75%;
                     height: 30px;
+                }
+                #obsBox {
+                    margin-top: 0px;
                 }
             }
         `;
@@ -236,11 +244,13 @@ export class MainPage extends LitElement {
             .then(data => {
                 if (!data)
                     return;
-                this.status.innerHTML = data["msg"];
+                this.obsStatus.innerHTML = data["msg"];
+                this.noHelpful.setAttribute("disabled", true);
+                this.submitObs.setAttribute("disabled", true);
             })
             .catch((error) => {
                 console.error('Error:', error);
-                this.status.innerHTML = "Error during request!";
+                this.obsStatus.innerHTML = "Error during request!";
             });
     }
 
@@ -271,7 +281,8 @@ export class MainPage extends LitElement {
     	    return html`
     	        <div class="recommendation">
     	            <div id="obsBox">
-    	                <input type="number" id="noHelpful" min="0" max="${this.recommendations.length}"><br />
+    	                <input type="number" id="noHelpful" min="0" max="${this.recommendations.length-1}">
+                        <p id="obsStatus">Please enter the number of interesting videos displayed on the page</p>
     	                <input type="button" id="submitObs" name="${rec["oneTimeCode"]}" @click=${this.sendObservation} value="Submit">
     	            </div>
     	        </div>`;
@@ -356,6 +367,14 @@ export class MainPage extends LitElement {
 
     get noHelpful() {
         return this.renderRoot.querySelector("#noHelpful");
+    }
+
+    get obsStatus() {
+        return this.renderRoot.querySelector("#obsStatus");
+    }
+
+    get obsBox() {
+        return this.renderRoot.querySelector("#obsBox");
     }
 
     get submitObs() {

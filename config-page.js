@@ -267,6 +267,8 @@ export class ConfigPage extends LitElement {
                       this._sharedCookies = false;
                       this._cookieStatus = data;
                       this.cookieStatus.innerHTML = this._cookieStatus;
+                      if (data !== "Could not get execution context. Are you logged in?")
+                          this._cookieBox = true;
                   });
             }
         }).then(data => {
@@ -308,6 +310,7 @@ export class ConfigPage extends LitElement {
                 this._addressbookStatus = "";
             }
             this.addressbookStatus.innerHTML = this._addressbookStatus;
+            this.requestUpdate();
             return this._addressbook;
         }).catch((error) => {
             if (error.name == "TypeError")
@@ -352,6 +355,7 @@ export class ConfigPage extends LitElement {
                 this._permissionStatus = "";
             }
             this.permissionStatus.innerHTML = this._permissionStatus;
+            this.requestUpdate();
             return this._permissions;
         })
         .catch((error) => {
@@ -383,6 +387,7 @@ export class ConfigPage extends LitElement {
                 this._consentStatus = "";
             }
             this.consentStatus.innerHTML = this._consentStatus;
+            this.requestUpdate();
             return this._consents;
         }).catch((error) => {
             if (error.name == "TypeError")
@@ -395,7 +400,7 @@ export class ConfigPage extends LitElement {
 
     fetchAlpha() {
         // If alpha has already been updated, no need to send request again
-        if (this._alpha != -1)
+        if (this._alpha !== -1)
             return this._alpha;
         fetch(this._recsBaseUri + "alpha", {credentials: "include"}).then(response => {
             if (response.ok) {
@@ -403,12 +408,13 @@ export class ConfigPage extends LitElement {
             }
         }).then(data => {
             if (!data)
-                return;
+                return -1;
             this._alpha = data * 100;
+            this.requestUpdate();
             return this._alpha;
         }).catch((error) => {
             console.error('Error:', error);
-            return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
+            return -1;
         });
     }
 
@@ -418,12 +424,12 @@ export class ConfigPage extends LitElement {
         fetch(`${this._contactserviceUri}name/${userId}`, {credentials: "include"}).then(response => {
             if (response.ok) {
                 return response.text();
-            } else {
-                return userId;
             }
         }).then(data => {
+            if (!data)
+                return userId;
             this._addressbook[userId] = data;
-            return data
+            return data;
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -432,8 +438,6 @@ export class ConfigPage extends LitElement {
     }
 
     fetchAvatar(userName) {
-        if (typeof userName === "undefined")
-            return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
         if (typeof this._avatars[userName] !== "undefined")
             return this._avatars[userName];
         fetch(this.las2peerBaseUri + "contactservice/user/" + userName, {credentials: "include"}).then(response => {
@@ -449,7 +453,6 @@ export class ConfigPage extends LitElement {
                 return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
             let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
             this._avatars[userName] = avatarLink;
-            this.requestUpdate();
             return avatarLink;
         }).catch((error) => {
             console.error('Error:', error);
@@ -646,18 +649,22 @@ export class ConfigPage extends LitElement {
     }
 
     synchronizeData() {
+        this._recStatus = "Started to synchronize data. This is going to take a couple of minutes... " +
+                    "You can continue to use the service. Once the update is done, this area of the config page is going to be replaced " +
+                    "with settings where you can influence your recommendations.";
+        this.customRecStatus.innerHTML = this._recStatus;
         fetch(this._recsBaseUri, {
             method: "POST",
             credentials: "include"
         }).then((response) => {
             if (response.ok) {
-                this._recStatus.innerHTML = "Started to synchronize data. This is going to take a couple of minutes... " +
-                    "You can continue to use the service. Once the update is done, this area of the config page is going to be replaced " +
-                    "with settings where you can influence your recommendations.";
+                this._recStatus = "Synchronization successful!";
                 this.customRecStatus.innerHTML = this._recStatus;
             }
             else
                 response.text().then(data => {
+		    if (typeof data["msg"] !== "undefined")
+		        data = data["msg"];
                     this._recStatus = data;
                     this.customRecStatus.innerHTML = this._recStatus;
                 });

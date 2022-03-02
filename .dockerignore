@@ -1,0 +1,4 @@
+test/
+*.txt
+dev/data
+nginx.conf
