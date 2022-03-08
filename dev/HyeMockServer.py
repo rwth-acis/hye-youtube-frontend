@@ -59,9 +59,9 @@ def get_proxy(path):
         file.close()
         return build_response(msg = data, content_type = JSON)
     if path[0] == 'cookies':
-        # if cookies:
-            # return build_response(msg = 'Cookies are valid.')
-        return build_response(status = 500, msg = "Unspecified server error.")# build_response(msg = 'No cookies found.')
+        if cookies:
+            return build_response(msg = 'Cookies are valid.')
+        build_response(msg = 'No cookies found.')
     if path[0] == 'reader':
         return build_response(msg = json.dumps(reader), content_type = JSON)
     if path[0] == 'consent':

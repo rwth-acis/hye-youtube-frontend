@@ -108,6 +108,30 @@ export class ConfigPage extends LitElement {
             .ytPermItem {
                 padding: 10px;
             }
+            .avatar {
+                border-radius: 50%;
+                height: 40px;
+                width: 40px;
+                vertical-align: middle;
+                display: inline-block;
+                overflow: hidden;
+            }
+            .collapsed {
+                max-height: 0px;
+            }
+            .clickBar {
+                height: 20px;
+                width: 90%;
+                display: inline-block;
+                box-shadow: 1px 2px 1px grey;
+                border: 1px solid lightgrey;
+                font-size: small;
+                padding: 1px 1px 1px 1em;
+            }
+            .clickBar:hover {
+                background-color: lightgrey;
+                cursor: pointer;
+            }
             @-moz-keyframes spin {
                 100% { -moz-transform: rotate(360deg); }
             }
@@ -130,14 +154,6 @@ export class ConfigPage extends LitElement {
             }
             #username {
                 display: inline-block;
-            }
-            .avatar {
-                border-radius: 50%;
-                height: 40px;
-                width: 40px;
-                vertical-align: middle;
-                display: inline-block;
-                overflow: hidden;
             }
             #cookieBtn {
                 width: 50%;
@@ -162,6 +178,15 @@ export class ConfigPage extends LitElement {
             #customRecs {
                 width: 90%;
                 padding: 0px 5%;
+            }
+            #collapsable {
+                width: 90%;
+                padding: 10px 5% 0px 5%;
+                transition: max-height 1s ease-in;
+                -webkit-transition: max-height 1s ease-in;
+                -moz-transition: max-height 1s ease-in;
+                -o-transition: max-height 1s ease-in;
+                overflow: hidden;
             }
             #loginBtn {
                 margin-right: 1em;
@@ -607,6 +632,7 @@ export class ConfigPage extends LitElement {
                 response.text().then(data => {
                     this.permissionStatus.innerHTML = data;
                     this.customRecs.setAttribute("hidden", '');
+                    this.uploadArea.setAttribute("hidden", '');
                 });
             } else {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
@@ -624,7 +650,9 @@ export class ConfigPage extends LitElement {
             if (response.ok) {
                 response.text().then(data => {
                     this.permissionStatus.innerHTML = data;
-                    this.customRecs.removeAttribute("hidden");
+                    if (this._alpha > 0)
+                        this.customRecs.removeAttribute("hidden");
+                    this.uploadArea.removeAttribute("hidden");
                 });
             } else {
                 response.text().then(data => {this.permissionStatus.innerHTML = data});
@@ -798,6 +826,10 @@ export class ConfigPage extends LitElement {
         return "https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/";
     }
 
+    toggleUploadArea() {
+        this.collapsable.classList.toggle("collapsed");
+    }
+
     render() {
         return this._sharedCookies
             ? html`
@@ -809,28 +841,24 @@ export class ConfigPage extends LitElement {
                         <input id="mixed" type="radio" name="deGue" @change=${this.resetPreference} ?checked=${this._deGue === ""}>
                         <label for="mixed">Mixed recommendations</label>
                     </li>
-                    ${this._alpha < 0 ?
-                        html`
-                            <div id="customRecs" ?hidden=${this._deGue != ""}>
-                                <p><b>Custom recommendations</b></p>
-                                <p>Please use the buttons below to sign into YouTube and then share upload your YouTube history to receive custom recommendations</p>
-                                <div class="buttonBox">
-                                    <a id="ytLink" target="_blank" href="${this._recsBaseUri + "login"}"><input type="button" id="loginBtn" value="YouTube login"></a>
-                                    <input type="button" id="synchBtn" value="Upload watch data" @click=${this.synchronizeData}>
-                                </div>
-                                <i id="customRecStatus">${this._recStatus}</i>
-                            </div>`
-                    :
-                        html`
-                            <div id="customRecs" ?hidden=${this._deGue != ""}>
-                                <p><b>Custom recommendations</b></p>
-                                <p>Set how different the recommendation mix should be from your normal recommendations</p>
-                                <label for="alpha">Similar</label>
-                                <input id="alpha" type="range" min="0" max="100" value="${this._alpha}" class="slider" @change=${this.updateAlpha}>
-                                <label for="mixed">Different</label><br />
-                                <i id="customRecStatus">${this._recStatus}</i>
-                            </div>`
-                    }
+                    <div id="uploadArea" ?hidden=${this._deGue != ""}>
+                        <span class="clickBar" @click=${this.toggleUploadArea}>Upload YouTube history</span>
+                        <div id="collapsable" class=${this._alpha < 0 ? "" : "collapsed"}>
+                            <p>Please use the buttons below to sign into YouTube and then share upload your YouTube history to receive custom recommendations</p>
+                            <div class="buttonBox">
+                                <a id="ytLink" target="_blank" href="${this._recsBaseUri + "login"}"><input type="button" id="loginBtn" value="YouTube login"></a>
+                                <input type="button" id="synchBtn" value="Upload watch data" @click=${this.synchronizeData}>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="customRecs" ?hidden=${this._deGue != "" || this._alpha < 0}>
+                        <p><b>Custom recommendations</b></p>
+                        <p>Set how different the recommendation mix should be from your normal recommendations</p>
+                        <label for="alpha">Similar</label>
+                        <input id="alpha" type="range" min="0" max="100" value="${this._alpha}" class="slider" @change=${this.updateAlpha}>
+                        <label for="mixed">Different</label><br />
+                        <i id="customRecStatus">${this._recStatus}</i>
+                    </div>
                     ${this._permissions.length > 0 ?
                         html`<b>Get exclusive recommendations for user</b>` : ``}
                     ${this._permissions.map((perm) => html`
@@ -924,6 +952,14 @@ export class ConfigPage extends LitElement {
 
     get customRecs() {
         return this.renderRoot.querySelector("#customRecs");
+    }
+
+    get uploadArea() {
+        return this.renderRoot.querySelector("#uploadArea");
+    }
+
+    get collapsable() {
+        return this.renderRoot.querySelector("#collapsable");
     }
 }
 
