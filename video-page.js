@@ -67,10 +67,9 @@ export class VideoPage extends LitElement {
             }
             #video {
                 font-family: sans-serif;
-                width: 100%;
-                max-width: fit-content;
+                max-width: 70%;
                 float: left;
-                padding-right: 20px;
+                padding-right: 30px;
             }
             #searchBarContainer {
                 display: block;
@@ -116,6 +115,9 @@ export class VideoPage extends LitElement {
                 margin-top: -30px;
                 margin-right: 15px;
             }
+            #detailContainer {
+                text-align: justify;
+            }
             #obsStatus {
                 color: grey;
                 font-size: medium;
@@ -132,6 +134,12 @@ export class VideoPage extends LitElement {
                 width: 275px;
                 height: 150px;
                 font-size: xxx-large;
+            }
+            #description {
+                white-space: pre-wrap;
+                box-shadow: inset gray 3px 2px 2px;
+                margin-top: 1em;
+                border: lightgray solid 1px;
             }
             #submitObs {
                 width: 285px;
@@ -259,9 +267,11 @@ export class VideoPage extends LitElement {
             .then(data => {
                 if (!data)
                     return;
+                data = JSON.parse(data["msg"]);
+                //data = JSON.parse(data.replace(/\n/g, "\\\\n").replace(/\r/g, "\\\\r").replace(/\t/g, "\\\\t"));
                 this.videoTitle = data["title"];
                 document.title = this.videoTitle;
-                this.videoUploadDate = data["uploadDate"];
+                this.videoUploadDate = new Date(data["uploadDate"]).toDateString();
                 this.videoDescription = data["description"];
                 this.requestUpdate();
             })
@@ -410,7 +420,7 @@ export class VideoPage extends LitElement {
                 <h2 id="videoTitle">${this.videoTitle}</h2>
                 <div id="detailContainer">
                     <p id="videoDetails">${this.videoUploadDate}</p>
-                    <p id="description">${this.videoDescription}</p>
+                    <div id="description">${this.videoDescription}</div>
                 </div>
             `;
         }

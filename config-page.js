@@ -844,11 +844,12 @@ export class ConfigPage extends LitElement {
                     <div id="uploadArea" ?hidden=${this._deGue != ""}>
                         <span class="clickBar" @click=${this.toggleUploadArea}>Upload YouTube history</span>
                         <div id="collapsable" class=${this._alpha < 0 ? "" : "collapsed"}>
-                            <p>Please use the buttons below to sign into YouTube and then share upload your YouTube history to receive custom recommendations</p>
+                            <p>Please use the buttons below to sign into YouTube and then upload your YouTube history to receive custom recommendations</p>
                             <div class="buttonBox">
                                 <a id="ytLink" target="_blank" href="${this._recsBaseUri + "login"}"><input type="button" id="loginBtn" value="YouTube login"></a>
                                 <input type="button" id="synchBtn" value="Upload watch data" @click=${this.synchronizeData}>
                             </div>
+                            <i id="customRecStatus">${this._recStatus}</i>
                         </div>
                     </div>
                     <div id="customRecs" ?hidden=${this._deGue != "" || this._alpha < 0}>
@@ -857,7 +858,6 @@ export class ConfigPage extends LitElement {
                         <label for="alpha">Similar</label>
                         <input id="alpha" type="range" min="0" max="100" value="${this._alpha}" class="slider" @change=${this.updateAlpha}>
                         <label for="mixed">Different</label><br />
-                        <i id="customRecStatus">${this._recStatus}</i>
                     </div>
                     ${this._permissions.length > 0 ?
                         html`<b>Get exclusive recommendations for user</b>` : ``}
