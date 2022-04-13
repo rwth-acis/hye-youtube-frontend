@@ -15,7 +15,7 @@ ADDRESSBOOK = {AGENT_ID_1: AGENT_NAME_1, AGENT_ID_2: AGENT_NAME_2, AGENT_ID_3: A
 
 loggedIn = False
 cookies = False
-reader = [AGENT_NAME_1, AGENT_NAME_2]
+reader = [AGENT_ID_1, AGENT_ID_2]
 consent = list()
 preference = ''
 dataShared = False
@@ -201,6 +201,7 @@ def get_contacts(path):
     if path[0] == 'addressbook':
         return build_response(msg = json.dumps(ADDRESSBOOK), content_type = JSON)
     if path[0] == 'name':
+        print(path[1], ADDRESSBOOK)
         if len(path) < 2 or len(path[1]) == 0:
             return not_found()
         if path[1] in ADDRESSBOOK:

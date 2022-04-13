@@ -478,6 +478,7 @@ export class ConfigPage extends LitElement {
                 return "https://raw.githubusercontent.com/rwth-acis/las2peer-frontend-user-widget/master/logo.png";
             let avatarLink = this.las2peerBaseUri + "fileservice/files/" + avatarId;
             this._avatars[userName] = avatarLink;
+            this.requestUpdate();
             return avatarLink;
         }).catch((error) => {
             console.error('Error:', error);
